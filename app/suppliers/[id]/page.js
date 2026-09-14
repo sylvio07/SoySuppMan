@@ -1,17 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 const STATUS_OPTIONS = ['À vérifier', 'Qualifié', 'En attente', 'Rejeté'];
+const DOC_TYPES = ['Certificat', 'Fiche technique', 'Bon de commande', 'Facture', 'Contrat', 'Autre'];
+const STORAGE_BUCKET = 'documents';
 
 export default function SupplierDetailPage() {
   const { id } = useParams();
   const [supplier, setSupplier] = useState(null);
   const [offers, setOffers] = useState([]);
+  const [supplierDocs, setSupplierDocs] = useState([]);
+  const [offerDocs, setOfferDocs] = useState({});
   const [loading, setLoading] = useState(true);
+
+  const loadDocuments = useCallback(async () => {
+    const { data: docs } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('supplier_id', id);
+
+    if (docs) {
+      setSupplierDocs(docs.filter((d) => !d.offer_id));
+      const grouped = {};
+      docs.filter((d) => d.offer_id).forEach((d) => {
+        if (!grouped[d.offer_id]) grouped[d.offer_id] = [];
+        grouped[d.offer_id].push(d);
+      });
+      setOfferDocs(grouped);
+    }
+  }, [id]);
 
   useEffect(() => {
     async function load() {
@@ -31,7 +52,8 @@ export default function SupplierDetailPage() {
       setLoading(false);
     }
     load();
-  }, [id]);
+    loadDocuments();
+  }, [id, loadDocuments]);
 
   const handleStatusChange = async (newStatus) => {
     const { error } = await supabase
@@ -81,6 +103,18 @@ export default function SupplierDetailPage() {
       </div>
 
       <h2 className="text-xl font-semibold mb-4">
+        Documents du fournisseur ({supplierDocs.length})
+      </h2>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+        <DocumentList docs={supplierDocs} onDelete={loadDocuments} />
+        <DocumentUpload
+          supplierId={id}
+          onUploaded={loadDocuments}
+        />
+      </div>
+
+      <h2 className="text-xl font-semibold mb-4">
         Produits proposés ({offers.length})
       </h2>
 
@@ -118,11 +152,149 @@ export default function SupplierDetailPage() {
                 <InfoRow label="Spécifications" value={offer.technical_specs} />
                 <InfoRow label="Commentaires" value={offer.comments} />
               </div>
+
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-500 mb-2">
+                  Documents de l&apos;offre ({(offerDocs[offer.id] || []).length})
+                </p>
+                <DocumentList docs={offerDocs[offer.id] || []} onDelete={loadDocuments} />
+                <DocumentUpload
+                  supplierId={id}
+                  offerId={offer.id}
+                  onUploaded={loadDocuments}
+                />
+              </div>
             </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function DocumentUpload({ supplierId, offerId, onUploaded }) {
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [docType, setDocType] = useState(DOC_TYPES[0]);
+  const [error, setError] = useState(null);
+
+  const handleUpload = async () => {
+    const file = fileRef.current?.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `${supplierId}/${timestamp}_${safeName}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(storagePath, file);
+
+    if (uploadErr) {
+      setError(`Erreur d'upload : ${uploadErr.message}`);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(storagePath);
+
+    const { error: dbErr } = await supabase.from('documents').insert({
+      supplier_id: supplierId,
+      offer_id: offerId || null,
+      doc_type: docType,
+      file_url: urlData.publicUrl,
+      file_name: file.name,
+    });
+
+    if (dbErr) {
+      setError(`Erreur d'enregistrement : ${dbErr.message}`);
+    } else {
+      fileRef.current.value = '';
+      onUploaded();
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-2">
+      <select
+        value={docType}
+        onChange={(e) => setDocType(e.target.value)}
+        className="border border-gray-300 rounded px-2 py-1 text-xs"
+      >
+        {DOC_TYPES.map((t) => (
+          <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
+      <input
+        ref={fileRef}
+        type="file"
+        className="text-xs text-gray-600"
+      />
+      <button
+        onClick={handleUpload}
+        disabled={uploading}
+        className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors disabled:opacity-50"
+      >
+        {uploading ? 'Envoi...' : 'Ajouter un document'}
+      </button>
+      {error && <p className="text-xs text-red-600 w-full">{error}</p>}
+    </div>
+  );
+}
+
+function DocumentList({ docs, onDelete }) {
+  const [deleting, setDeleting] = useState(null);
+
+  const handleDelete = async (doc) => {
+    if (!confirm('Supprimer « ' + doc.file_name + ' » ?')) return;
+    setDeleting(doc.id);
+
+    const urlParts = doc.file_url.split(`/${STORAGE_BUCKET}/`);
+    if (urlParts[1]) {
+      await supabase.storage.from(STORAGE_BUCKET).remove([urlParts[1]]);
+    }
+
+    await supabase.from('documents').delete().eq('id', doc.id);
+    setDeleting(null);
+    onDelete();
+  };
+
+  if (docs.length === 0) {
+    return <p className="text-xs text-gray-400 mb-1">Aucun document.</p>;
+  }
+
+  return (
+    <ul className="space-y-1 mb-2">
+      {docs.map((doc) => (
+        <li key={doc.id} className="flex items-center gap-2 text-xs">
+          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{doc.doc_type || 'Autre'}</span>
+          <a
+            href={doc.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-700 hover:underline truncate max-w-xs"
+          >
+            {doc.file_name || 'Document'}
+          </a>
+          <span className="text-gray-400">
+            {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('fr-FR') : ''}
+          </span>
+          <button
+            onClick={() => handleDelete(doc)}
+            disabled={deleting === doc.id}
+            className="text-red-400 hover:text-red-600 ml-auto"
+            title="Supprimer"
+          >
+            {deleting === doc.id ? '...' : '✕'}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

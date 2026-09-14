@@ -13,7 +13,7 @@
 | 6 — Page Produits | Terminé | Liste filtrable + tableau comparatif triable |
 | 7 — Dashboard | Terminé | Statistiques temps réel via Supabase count() |
 | 8 — Recherche et filtres | Terminé | Filtres combinables sur `/suppliers` et `/products` (catégorie, pays, statut, certifications, incoterm) |
-| 9 — Documents | Reporté | Nécessite la création d'un bucket Supabase Storage [ACTION HUMAINE REQUISE] |
+| 9 — Documents | Terminé (code) | Upload/suppression/affichage implémentés sur la fiche fournisseur (niveau fournisseur et niveau offre). [ACTION HUMAINE REQUISE] Créer le bucket `documents` dans Supabase Storage (public) |
 | 10 — Export Excel | Terminé | Boutons "Exporter Excel" sur `/suppliers` et `/products` |
 | 11 — Déploiement | En attente | [ACTION HUMAINE REQUISE] Push GitHub + import Vercel + variables d'env |
 
@@ -44,5 +44,16 @@ Fichier `test-data/sourcing-exemple.xlsx` avec 12 lignes, incluant :
 - 1 quasi-doublon ("AGRI-WEST TRADING CO. " en majuscules avec espace trailing) pour tester la déduplication
 - 5 fournisseurs distincts répartis sur plusieurs catégories
 
-### Étape 9 (Documents) reportée
-L'upload de documents vers Supabase Storage nécessite la création préalable d'un bucket `documents` dans le dashboard Supabase, ce qui est une action humaine. La table `documents` est prévue dans le schéma SQL, le code d'upload sera ajouté après la configuration du bucket.
+### Étape 9 — Documents : implémentation
+Le code d'upload/suppression/affichage des documents est intégré directement dans la page fiche fournisseur (`/suppliers/[id]`), à deux niveaux :
+- **Niveau fournisseur** : section « Documents du fournisseur » en haut de la fiche, pour les documents généraux (certificats d'entreprise, contrats cadre, etc.)
+- **Niveau offre** : chaque carte offre affiche ses propres documents et permet d'en ajouter
+
+Choix techniques :
+- Upload vers Supabase Storage bucket `documents`, avec un chemin `{supplier_id}/{timestamp}_{filename}` pour éviter les collisions
+- Noms de fichiers assainis (caractères spéciaux remplacés par `_`) pour compatibilité storage
+- Types de document prédéfinis : Certificat, Fiche technique, Bon de commande, Facture, Contrat, Autre
+- Suppression : supprime le fichier dans le storage ET l'enregistrement en base
+- Pas de page `/documents` séparée : les documents sont toujours consultés dans le contexte de leur fournisseur/offre, ce qui est plus naturel pour le workflow
+
+**[ACTION HUMAINE REQUISE]** : Créer un bucket `documents` dans Supabase Storage (Dashboard > Storage > New bucket). Le bucket doit être public pour que les URLs de téléchargement fonctionnent.
