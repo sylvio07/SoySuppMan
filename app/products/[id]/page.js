@@ -76,18 +76,6 @@ export default function ProductDetailPage() {
   if (loading) return <p className="text-gray-500">Chargement...</p>;
   if (!product) return <p className="text-red-500">Produit introuvable.</p>;
 
-  const SortHeader = ({ col, children }) => (
-    <th
-      className="text-left px-4 py-3 font-medium cursor-pointer hover:text-green-700 select-none"
-      onClick={() => toggleSort(col)}
-    >
-      {children}
-      {sortCol === col && (
-        <span className="ml-1">{sortDir === 'asc' ? '▲' : '▼'}</span>
-      )}
-    </th>
-  );
-
   return (
     <div>
       <Link href="/products" className="text-sm text-green-700 hover:underline mb-4 inline-block">
@@ -129,14 +117,14 @@ export default function ProductDetailPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <SortHeader col="company_name">Fournisseur</SortHeader>
-                <SortHeader col="price">Prix</SortHeader>
-                <SortHeader col="moq">MOQ</SortHeader>
+                <SortHeader col="company_name" sortCol={sortCol} sortDir={sortDir} onToggle={toggleSort}>Fournisseur</SortHeader>
+                <SortHeader col="price" sortCol={sortCol} sortDir={sortDir} onToggle={toggleSort}>Prix</SortHeader>
+                <SortHeader col="moq" sortCol={sortCol} sortDir={sortDir} onToggle={toggleSort}>MOQ</SortHeader>
                 <th className="text-left px-4 py-3 font-medium">Quantité</th>
-                <SortHeader col="incoterm">Incoterm</SortHeader>
+                <SortHeader col="incoterm" sortCol={sortCol} sortDir={sortDir} onToggle={toggleSort}>Incoterm</SortHeader>
                 <th className="text-left px-4 py-3 font-medium">Certifications</th>
                 <th className="text-left px-4 py-3 font-medium">Spécifications</th>
-                <SortHeader col="status">Statut</SortHeader>
+                <SortHeader col="status" sortCol={sortCol} sortDir={sortDir} onToggle={toggleSort}>Statut</SortHeader>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -175,5 +163,19 @@ export default function ProductDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function SortHeader({ col, sortCol, sortDir, onToggle, children }) {
+  return (
+    <th
+      className="text-left px-4 py-3 font-medium cursor-pointer hover:text-green-700 select-none"
+      onClick={() => onToggle(col)}
+    >
+      {children}
+      {sortCol === col && (
+        <span className="ml-1">{sortDir === 'asc' ? '▲' : '▼'}</span>
+      )}
+    </th>
   );
 }

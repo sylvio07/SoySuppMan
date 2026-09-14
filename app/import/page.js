@@ -3,11 +3,9 @@
 import { useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { mapColumns, applyMapping } from '@/lib/column-mapping';
-import { findMatchesInDB, normalizeCompanyName } from '@/lib/dedup';
+import { findMatchesInDB } from '@/lib/dedup';
 import { executeImport } from '@/lib/import-logic';
 import { supabase } from '@/lib/supabase';
-
-const STEPS = ['upload', 'preview', 'importing', 'done'];
 
 export default function ImportPage() {
   const [step, setStep] = useState('upload');
@@ -28,7 +26,7 @@ export default function ImportPage() {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
 
       if (rows.length === 0) {
         setError('Le fichier est vide ou ne contient aucune donnée.');
@@ -284,8 +282,8 @@ function DoneStep({ summary, onReset }) {
           <StatCard label="Fournisseurs réutilisés" value={summary.suppliersReused} color="blue" />
           <StatCard label="Offres créées" value={summary.offersCreated} color="green" />
           <StatCard label="Offres mises à jour" value={summary.offersUpdated} color="yellow" />
-          <StatCard label="Catégories" value={summary.categoriesCreated} />
-          <StatCard label="Produits" value={summary.productsCreated} />
+          <StatCard label="Catégories" value={summary.categoriesResolved} />
+          <StatCard label="Produits" value={summary.productsResolved} />
         </div>
       </div>
       {summary.errors.length > 0 && (

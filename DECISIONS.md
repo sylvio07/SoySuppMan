@@ -57,3 +57,24 @@ Choix techniques :
 - Pas de page `/documents` séparée : les documents sont toujours consultés dans le contexte de leur fournisseur/offre, ce qui est plus naturel pour le workflow
 
 **[ACTION HUMAINE REQUISE]** : Créer un bucket `documents` dans Supabase Storage (Dashboard > Storage > New bucket). Le bucket doit être public pour que les URLs de téléchargement fonctionnent.
+
+### Revue de qualité post-génération — corrections appliquées
+
+1. **Export Excel crashait dans le navigateur** : `XLSX.writeFile()` utilise `fs` (Node.js). Remplacé par `XLSX.write()` + Blob + lien de téléchargement dynamique.
+2. **6 colonnes CSV perdues à l'import** : `supplier_type`, `specialties`, `payment_terms`, `loading_port`, `discharge_port`, `priority` étaient mappées mais n'existaient pas en base. Colonnes ajoutées au schéma SQL et à la logique d'insert (`import-logic.js`).
+3. **Limite 1000 lignes Supabase sur la dédup** : `select('*')` sans `.range()` retourne au max 1000 rows par défaut. Ajout de `.range(0, 9999)` dans `dedup.js`.
+4. **`parsePrice` cassait sur les séparateurs de milliers** : `"1,234,567"` devenait `1.234`. Parsing amélioré avec détection locale (virgule décimale européenne vs. point anglo-saxon).
+5. **Compteurs catégories/produits surévalués** : renommés en `categoriesResolved`/`productsResolved` pour refléter qu'ils comptent les catégories/produits uniques dans l'import (pas nécessairement nouveaux).
+6. **`SortHeader` défini dans le render** : anti-pattern React causant des remontages DOM. Extrait en composant séparé dans `products/[id]/page.js`.
+7. **Code mort supprimé** : import `normalizeCompanyName` et constante `STEPS` inutilisés dans `import/page.js`.
+8. **`sheet_to_json` perdait 5 colonnes du CSV réel** : sans `{defval: ''}`, SheetJS supprime les colonnes vides dans les premières lignes. `CONTACT_POSITION`, `DISCHARGE PORT`, `NOTES AFTER EXCHANGES`, `TARGET_PRICE_HINT`, `PRIORITY` étaient silencieusement ignorées. Corrigé en ajoutant `{defval: ''}` au parsing.
+
+**⚠️ IMPORTANT** : Le schéma SQL a changé (nouvelles colonnes). Si le schéma a déjà été appliqué dans Supabase, exécuter ces ALTER manuellement :
+```sql
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS supplier_type text;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS specialties text;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS payment_terms text;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS loading_port text;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS discharge_port text;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS priority text;
+```
