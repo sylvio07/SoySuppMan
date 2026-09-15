@@ -69,7 +69,12 @@ export default function SuppliersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Fournisseurs</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Fournisseurs</h1>
+        <Link href="/suppliers/new" className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-colors">
+          + Nouveau fournisseur
+        </Link>
+      </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
         <input

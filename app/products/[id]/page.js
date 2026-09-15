@@ -1,17 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [product, setProduct] = useState(null);
   const [offers, setOffers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortCol, setSortCol] = useState('company_name');
   const [sortDir, setSortDir] = useState('asc');
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -26,12 +32,41 @@ export default function ProductDetailPage() {
         .select('*, suppliers(company_name, country, status)')
         .eq('product_id', id);
 
+      const { data: cats } = await supabase.from('categories').select('id, name').order('name');
       if (prod) setProduct(prod);
       if (off) setOffers(off);
+      if (cats) setCategories(cats);
       setLoading(false);
     }
     load();
   }, [id]);
+
+  const startEdit = () => {
+    setEditForm({ name: product.name, category_id: product.category_id, description: product.description || '' });
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.from('products').update({
+      name: editForm.name.trim(),
+      category_id: editForm.category_id,
+      description: editForm.description.trim() || null,
+    }).eq('id', id);
+    if (!error) {
+      const cat = categories.find((c) => c.id === editForm.category_id);
+      setProduct((prev) => ({ ...prev, name: editForm.name.trim(), category_id: editForm.category_id, description: editForm.description.trim() || null, categories: cat ? { name: cat.name } : prev.categories }));
+      setEditing(false);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Supprimer le produit "${product.name}" et toutes ses offres ?`)) return;
+    setDeleting(true);
+    await supabase.from('products').delete().eq('id', id);
+    router.push('/products');
+  };
 
   const toggleSort = (col) => {
     if (sortCol === col) {
@@ -83,12 +118,55 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-        <p className="text-sm text-gray-500 mb-4">
-          Catégorie : {product.categories?.name || '—'}
-        </p>
-        {product.description && (
-          <p className="text-sm text-gray-700 mb-2">{product.description}</p>
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <h1 className="text-2xl font-bold">{product.name}</h1>
+            <p className="text-sm text-gray-500 mt-1">Catégorie : {product.categories?.name || '—'}</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={startEdit}
+              className="border border-gray-300 text-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-50 transition-colors">
+              Modifier
+            </button>
+            <button onClick={handleDelete} disabled={deleting}
+              className="border border-red-300 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-50 transition-colors disabled:opacity-50">
+              {deleting ? '...' : 'Supprimer'}
+            </button>
+          </div>
+        </div>
+        {editing && (
+          <div className="mt-4 space-y-3 border-t pt-4">
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Nom *</label>
+              <input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full max-w-sm" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Catégorie *</label>
+              <select value={editForm.category_id} onChange={(e) => setEditForm((p) => ({ ...p, category_id: e.target.value }))}
+                className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full max-w-sm">
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Description</label>
+              <textarea value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                rows={2} className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full max-w-sm" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleSave} disabled={saving}
+                className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-300">
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+        {product.description && !editing && (
+          <p className="text-sm text-gray-700 mt-2">{product.description}</p>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           {product.specs_required && (

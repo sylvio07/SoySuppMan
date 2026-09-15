@@ -29,7 +29,12 @@ export default function CategoriesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Catégories</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Catégories</h1>
+        <Link href="/categories/new" className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-colors">
+          + Nouvelle catégorie
+        </Link>
+      </div>
 
       <div className="flex gap-3 mb-6">
         <input

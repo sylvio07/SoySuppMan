@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
@@ -11,11 +11,16 @@ const STORAGE_BUCKET = 'documents';
 
 export default function SupplierDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [supplier, setSupplier] = useState(null);
   const [offers, setOffers] = useState([]);
   const [supplierDocs, setSupplierDocs] = useState([]);
   const [offerDocs, setOfferDocs] = useState({});
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadDocuments = useCallback(async () => {
     const { data: docs } = await supabase
@@ -56,14 +61,46 @@ export default function SupplierDetailPage() {
   }, [id, loadDocuments]);
 
   const handleStatusChange = async (newStatus) => {
-    const { error } = await supabase
-      .from('suppliers')
-      .update({ status: newStatus })
-      .eq('id', id);
+    const { error } = await supabase.from('suppliers').update({ status: newStatus }).eq('id', id);
+    if (!error) setSupplier((prev) => ({ ...prev, status: newStatus }));
+  };
 
+  const startEdit = () => {
+    setEditForm({
+      company_name: supplier.company_name || '',
+      supplier_type: supplier.supplier_type || '',
+      country: supplier.country || '',
+      city: supplier.city || '',
+      address: supplier.address || '',
+      email: supplier.email || '',
+      phone: supplier.phone || '',
+      website: supplier.website || '',
+      contact_person: supplier.contact_person || '',
+      contact_role: supplier.contact_role || '',
+      specialties: supplier.specialties || '',
+      comments: supplier.comments || '',
+    });
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const payload = Object.fromEntries(
+      Object.entries(editForm).map(([k, v]) => [k, v.trim() || null])
+    );
+    const { error } = await supabase.from('suppliers').update(payload).eq('id', id);
     if (!error) {
-      setSupplier((prev) => ({ ...prev, status: newStatus }));
+      setSupplier((prev) => ({ ...prev, ...payload }));
+      setEditing(false);
     }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Supprimer le fournisseur "${supplier.company_name}" et toutes ses offres ?`)) return;
+    setDeleting(true);
+    await supabase.from('suppliers').delete().eq('id', id);
+    router.push('/suppliers');
   };
 
   if (loading) return <p className="text-gray-500">Chargement...</p>;
@@ -78,28 +115,42 @@ export default function SupplierDetailPage() {
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <h1 className="text-2xl font-bold">{supplier.company_name}</h1>
-          <select
-            value={supplier.status || 'À vérifier'}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-1 text-sm"
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={supplier.status || 'À vérifier'}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-1 text-sm"
+            >
+              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={startEdit}
+              className="border border-gray-300 text-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-50 transition-colors">
+              Modifier
+            </button>
+            <button onClick={handleDelete} disabled={deleting}
+              className="border border-red-300 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-50 transition-colors disabled:opacity-50">
+              {deleting ? '...' : 'Supprimer'}
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <InfoRow label="Pays" value={supplier.country} />
-          <InfoRow label="Ville" value={supplier.city} />
-          <InfoRow label="Adresse" value={supplier.address} />
-          <InfoRow label="Contact" value={supplier.contact_person} />
-          <InfoRow label="Fonction" value={supplier.contact_role} />
-          <InfoRow label="Email" value={supplier.email} />
-          <InfoRow label="Téléphone" value={supplier.phone} />
-          <InfoRow label="Site web" value={supplier.website} link />
-          <InfoRow label="Commentaires" value={supplier.comments} />
-        </div>
+        {editing ? (
+          <EditSupplierForm form={editForm} setForm={setEditForm} onSave={handleSave} onCancel={() => setEditing(false)} saving={saving} />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <InfoRow label="Type" value={supplier.supplier_type} />
+            <InfoRow label="Pays" value={supplier.country} />
+            <InfoRow label="Ville" value={supplier.city} />
+            <InfoRow label="Adresse" value={supplier.address} />
+            <InfoRow label="Contact" value={supplier.contact_person} />
+            <InfoRow label="Fonction" value={supplier.contact_role} />
+            <InfoRow label="Email" value={supplier.email} />
+            <InfoRow label="Téléphone" value={supplier.phone} />
+            <InfoRow label="Site web" value={supplier.website} link />
+            <InfoRow label="Spécialités" value={supplier.specialties} />
+            <InfoRow label="Commentaires" value={supplier.comments} />
+          </div>
+        )}
       </div>
 
       <h2 className="text-xl font-semibold mb-4">
@@ -295,6 +346,48 @@ function DocumentList({ docs, onDelete }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function EditSupplierForm({ form, setForm, onSave, onCancel, saving }) {
+  const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        {[
+          ['company_name', 'Nom *'],['supplier_type', 'Type'],['country', 'Pays'],
+          ['city', 'Ville'],['address', 'Adresse'],['email', 'Email'],
+          ['phone', 'Téléphone'],['website', 'Site web'],
+          ['contact_person', 'Contact'],['contact_role', 'Fonction'],
+        ].map(([field, label]) => (
+          <div key={field}>
+            <label className="block text-gray-500 mb-1">{label}</label>
+            <input value={form[field]} onChange={set(field)}
+              className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full" />
+          </div>
+        ))}
+        <div className="md:col-span-2">
+          <label className="block text-gray-500 mb-1">Spécialités</label>
+          <input value={form.specialties} onChange={set('specialties')}
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-gray-500 mb-1">Commentaires</label>
+          <textarea value={form.comments} onChange={set('comments')} rows={2}
+            className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full" />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={onSave} disabled={saving}
+          className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
+          {saving ? 'Enregistrement...' : 'Enregistrer'}
+        </button>
+        <button onClick={onCancel}
+          className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-300">
+          Annuler
+        </button>
+      </div>
+    </div>
   );
 }
 
