@@ -27,7 +27,23 @@ export default function ImportPage() {
       const isCSV = file.name.toLowerCase().endsWith('.csv');
       let workbook;
       if (isCSV) {
-        const text = new TextDecoder('utf-8').decode(data);
+        const bytes = new Uint8Array(data);
+        // Detect UTF-8 BOM (EF BB BF)
+        const hasUTF8BOM = bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+        // Detect UTF-16 LE BOM (FF FE)
+        const hasUTF16BOM = bytes[0] === 0xFF && bytes[1] === 0xFE;
+        let text;
+        if (hasUTF16BOM) {
+          text = new TextDecoder('utf-16le').decode(data);
+        } else if (hasUTF8BOM) {
+          text = new TextDecoder('utf-8').decode(data.slice(3));
+        } else {
+          // Try UTF-8 first; if replacement character appears, fall back to Windows-1252
+          const utf8 = new TextDecoder('utf-8', { fatal: false }).decode(data);
+          text = utf8.includes('�')
+            ? new TextDecoder('windows-1252').decode(data)
+            : utf8;
+        }
         workbook = XLSX.read(text, { type: 'string' });
       } else {
         workbook = XLSX.read(data, { type: 'array' });
