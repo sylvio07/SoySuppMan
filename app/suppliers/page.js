@@ -106,9 +106,9 @@ export default function SuppliersPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Fournisseurs</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
               const data = filtered.map((s) => ({
@@ -122,7 +122,7 @@ export default function SuppliersPage() {
               }));
               exportToExcel(data, 'fournisseurs-soycain');
             }}
-            className="text-sm border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors font-medium"
+            className="text-sm border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors font-medium"
           >
             Exporter Excel
           </button>
@@ -166,11 +166,11 @@ export default function SuppliersPage() {
 
       {/* Collapsible filter row */}
       {filtersOpen && (
-        <div className="flex flex-wrap gap-3 mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
           <select
             value={filterCountry}
             onChange={(e) => setFilterCountry(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="">Tous les pays</option>
             {countries.map((c) => (
@@ -180,7 +180,7 @@ export default function SuppliersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="">Tous les statuts</option>
             {statuses.map((s) => (
@@ -190,7 +190,7 @@ export default function SuppliersPage() {
           <select
             value={filterCertification}
             onChange={(e) => setFilterCertification(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="">Toutes certifications</option>
             {allCertifications.map((c) => (
@@ -200,7 +200,7 @@ export default function SuppliersPage() {
           <select
             value={filterIncoterm}
             onChange={(e) => setFilterIncoterm(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="">Tous incoterms</option>
             {allIncoterms.map((ic) => (
@@ -210,7 +210,7 @@ export default function SuppliersPage() {
           {activeFiltersCount > 0 && (
             <button
               onClick={() => { setFilterCountry(''); setFilterStatus(''); setFilterCertification(''); setFilterIncoterm(''); }}
-              className="text-sm text-red-600 hover:text-red-800 px-2 py-2 transition-colors"
+              className="sm:col-span-2 text-sm text-red-600 hover:text-red-800 px-2 py-2 transition-colors text-left"
             >
               Effacer les filtres
             </button>
@@ -221,8 +221,46 @@ export default function SuppliersPage() {
       {/* Result count */}
       <p className="text-sm text-gray-500 mb-3">{filtered.length} fournisseur{filtered.length !== 1 ? 's' : ''}</p>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      {/* Mobile card list (hidden on md+) */}
+      <div className="md:hidden space-y-2">
+        {filtered.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center py-16 gap-3 text-center">
+            <span className="text-5xl">🏭</span>
+            <p className="text-gray-500 font-medium">Aucun fournisseur trouvé</p>
+            <p className="text-gray-400 text-sm">
+              {search || activeFiltersCount > 0
+                ? 'Modifiez vos critères.'
+                : <Link href="/import" className="text-green-600 hover:underline">Importer des fournisseurs</Link>
+              }
+            </p>
+          </div>
+        ) : filtered.map((s) => (
+          <div key={s.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <Link href={`/suppliers/${s.id}`} className="font-semibold text-green-700 hover:underline block truncate">
+                {s.company_name}
+              </Link>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500">
+                {s.country && <span>{s.country}</span>}
+                {s.contact_person && <span>{s.contact_person}</span>}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <StatusBadge status={s.status} />
+              <button
+                onClick={() => setDeleteTarget(s)}
+                title="Supprimer"
+                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table (hidden on mobile) */}
+      <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-x-auto shadow-sm">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
             <span className="text-5xl">🏭</span>

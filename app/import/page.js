@@ -249,7 +249,7 @@ function UploadStep({ onFile }) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`border-2 border-dashed rounded-xl p-14 text-center transition-all duration-200 cursor-default ${
+      className={`border-2 border-dashed rounded-xl p-8 sm:p-14 text-center transition-all duration-200 cursor-default ${
         dragging
           ? 'border-green-400 bg-green-50'
           : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-white'
@@ -371,7 +371,7 @@ function PreviewStep({ fileName, stats, matchResults, onDecision, onConfirm, onC
       )}
 
       {/* Action buttons */}
-      <div className="flex gap-3 pt-1">
+      <div className="flex flex-wrap gap-3 pt-1">
         <button
           onClick={onConfirm}
           disabled={!allResolved}

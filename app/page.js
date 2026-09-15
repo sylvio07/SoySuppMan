@@ -110,7 +110,7 @@ export default function Dashboard() {
       <p className="text-sm text-gray-500 mb-7">Vue d&apos;ensemble de votre base fournisseurs</p>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <StatCard label="Fournisseurs" value={stats.totalSuppliers} href="/suppliers" color="green" />
         <StatCard label="Produits" value={stats.totalProducts} href="/products" color="blue" />
         <StatCard label="Catégories" value={stats.totalCategories} color="purple" />
@@ -202,10 +202,10 @@ function StatCard({ label, value, href, color }) {
   };
 
   const content = (
-    <div className={`bg-white border border-gray-200 border-l-4 ${borderColorMap[color] || ''} rounded-lg p-5 h-full`}>
-      <div className="text-4xl font-bold text-gray-900 tracking-tight">{value}</div>
+    <div className={`bg-white border border-gray-200 border-l-4 ${borderColorMap[color] || ''} rounded-lg p-4 sm:p-5 h-full`}>
+      <div className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">{value}</div>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-sm text-gray-500">{label}</span>
+        <span className="text-xs sm:text-sm text-gray-500">{label}</span>
         {href && <span className="text-gray-400 text-sm">→</span>}
       </div>
     </div>

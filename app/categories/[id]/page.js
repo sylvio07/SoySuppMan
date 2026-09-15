@@ -84,7 +84,7 @@ export default function CategoryDetailPage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-500">
         <Link href="/categories" className="hover:text-green-700 transition-colors">
@@ -96,8 +96,8 @@ export default function CategoryDetailPage() {
 
       {/* Header card */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <div className="flex justify-between items-start gap-4">
-          <div className="min-w-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="min-w-0 flex-1">
             {!editing && (
               <>
                 <div className="flex items-center gap-3 flex-wrap">
