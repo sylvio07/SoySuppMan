@@ -27,8 +27,9 @@ export default function NavBar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-xl font-bold text-green-700">
-              Soycain
+            <Link href="/" className="flex items-baseline gap-1">
+              <span className="text-xl font-extrabold text-green-700 tracking-tight">SOURCIO</span>
+              <span className="text-xs font-medium text-gray-400 hidden sm:inline">Sourcing Intelligence Operations</span>
             </Link>
           </div>
 
