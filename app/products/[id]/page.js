@@ -132,38 +132,18 @@ export default function ProductDetailPage() {
 
       {/* Header card */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        {/* Title + actions row */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl font-bold text-gray-900 leading-tight">{product.name}</h1>
-            <div className="mt-2">
-              {product.categories?.name ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+            {product.categories?.name && (
+              <Link href={`/categories/${product.category_id}`}>
+                <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200 hover:bg-green-200 transition-colors cursor-pointer">
                   {product.categories.name}
                 </span>
-              ) : (
-                <span className="text-sm text-gray-400">Aucune catégorie</span>
-              )}
-            </div>
-            {product.description && !editing && (
-              <p className="text-sm text-gray-600 mt-3 leading-relaxed">{product.description}</p>
+              </Link>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-sm mt-3">
-              {product.specs_required && (
-                <div><span className="text-gray-500 font-medium">Specs requises :</span> <span className="text-gray-700">{product.specs_required}</span></div>
-              )}
-              {product.certifications_required && (
-                <div><span className="text-gray-500 font-medium">Certifications requises :</span> <span className="text-gray-700">{product.certifications_required}</span></div>
-              )}
-              {product.quality_docs_required && (
-                <div><span className="text-gray-500 font-medium">Documents qualité :</span> <span className="text-gray-700">{product.quality_docs_required}</span></div>
-              )}
-              {product.packaging_required && (
-                <div><span className="text-gray-500 font-medium">Conditionnement requis :</span> <span className="text-gray-700">{product.packaging_required}</span></div>
-              )}
-            </div>
           </div>
-
-          {/* Action buttons */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={startEdit}
@@ -187,9 +167,38 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
+        {/* Product info grid */}
+        {!editing && (
+          <div className="border-t border-gray-100 pt-5">
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Informations produit</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <InfoField icon="🗂️" label="Catégorie" value={product.categories?.name} />
+              <InfoField icon="📝" label="Description" value={product.description} wide />
+              <InfoField icon="🔬" label="Spécifications requises" value={product.specs_required} />
+              <InfoField icon="🏅" label="Certifications requises" value={product.certifications_required} />
+              <InfoField icon="📋" label="Documents qualité" value={product.quality_docs_required} />
+              <InfoField icon="📦" label="Conditionnement requis" value={product.packaging_required} />
+            </div>
+            {/* Aggregate origins from offers */}
+            {(() => {
+              const origins = [...new Set(offers.map((o) => o.origin).filter(Boolean))];
+              return origins.length > 0 ? (
+                <div className="mt-4 pt-4 border-t border-gray-50">
+                  <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">Origines proposées</span>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {origins.map((o) => (
+                      <span key={o} className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-medium">{o}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        )}
+
         {/* Inline edit form */}
         {editing && (
-          <div className="mt-6 border-t border-gray-100 pt-5 space-y-4">
+          <div className="border-t border-gray-100 pt-5 space-y-4">
             <p className="text-sm font-semibold text-gray-700">Modifier le produit</p>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Nom *</label>
@@ -334,6 +343,19 @@ export default function ProductDetailPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function InfoField({ icon, label, value, wide }) {
+  if (!value) return null;
+  return (
+    <div className={wide ? 'sm:col-span-2 lg:col-span-3' : ''}>
+      <dt className="flex items-center gap-1.5 text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
+        <span>{icon}</span>
+        {label}
+      </dt>
+      <dd className="text-sm text-gray-800 leading-relaxed">{value}</dd>
     </div>
   );
 }
