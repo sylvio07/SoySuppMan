@@ -17,6 +17,7 @@ const navLinks = [
   { href: "/", label: "Tableau de bord" },
   { href: "/import", label: "Importer" },
   { href: "/suppliers", label: "Fournisseurs" },
+  { href: "/categories", label: "Catégories" },
   { href: "/products", label: "Produits" },
 ];
 
