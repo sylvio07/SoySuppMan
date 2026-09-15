@@ -24,7 +24,14 @@ export default function ImportPage() {
 
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
+      const isCSV = file.name.toLowerCase().endsWith('.csv');
+      let workbook;
+      if (isCSV) {
+        const text = new TextDecoder('utf-8').decode(data);
+        workbook = XLSX.read(text, { type: 'string' });
+      } else {
+        workbook = XLSX.read(data, { type: 'array' });
+      }
       const sheetName = workbook.SheetNames[0];
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
 
