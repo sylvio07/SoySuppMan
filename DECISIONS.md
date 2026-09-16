@@ -16,6 +16,7 @@
 | 9 — Documents | Terminé (code) | Upload/suppression/affichage implémentés sur la fiche fournisseur (niveau fournisseur et niveau offre). [ACTION HUMAINE REQUISE] Créer le bucket `documents` dans Supabase Storage (public) |
 | 10 — Export Excel | Terminé | Boutons "Exporter Excel" sur `/suppliers` et `/products` |
 | 11 — Déploiement | En attente | [ACTION HUMAINE REQUISE] Push GitHub + import Vercel + variables d'env |
+| 12 — Authentification | Terminé (code) | Supabase Auth email/password + middleware Next.js + RLS policies. [ACTION HUMAINE REQUISE] Exécuter `supabase/rls-policies.sql` dans Supabase et créer le premier utilisateur (Dashboard > Authentication > Users > Invite) |
 
 ## Décisions techniques
 
@@ -68,6 +69,22 @@ Choix techniques :
 6. **`SortHeader` défini dans le render** : anti-pattern React causant des remontages DOM. Extrait en composant séparé dans `products/[id]/page.js`.
 7. **Code mort supprimé** : import `normalizeCompanyName` et constante `STEPS` inutilisés dans `import/page.js`.
 8. **`sheet_to_json` perdait 5 colonnes du CSV réel** : sans `{defval: ''}`, SheetJS supprime les colonnes vides dans les premières lignes. `CONTACT_POSITION`, `DISCHARGE PORT`, `NOTES AFTER EXCHANGES`, `TARGET_PRICE_HINT`, `PRIORITY` étaient silencieusement ignorées. Corrigé en ajoutant `{defval: ''}` au parsing.
+
+### Authentification — choix d'implémentation (étape 12)
+
+**Supabase Auth email/mot de passe**, sans inscription publique.
+
+- **Middleware** (`middleware.js`) : pattern officiel `@supabase/ssr` avec `createServerClient`. Intercepte toutes les routes sauf `/login` et les assets statiques. Rafraîchit le cookie de session automatiquement.
+- **Client serveur** (`lib/supabase-server.js`) : utilise `createServerClient` + `cookies()` de `next/headers`. Réservé aux Server Components et actions serveur si ajoutés plus tard.
+- **Client existant** (`lib/supabase.js`) : conservé tel quel (`createClient` classique côté client). Il transporte automatiquement la session via les cookies posés par `@supabase/ssr` — aucune modification des pages existantes n'est nécessaire.
+- **AppShell** (`app/components/AppShell.js`) : composant client qui masque la NavBar sur `/login` uniquement, sans rendre le RootLayout client.
+- **RLS** (`supabase/rls-policies.sql`) : policies `authenticated` sur les 5 tables. L'anon key ne peut plus rien lire ni écrire — protection double (middleware UI + base de données).
+- **Pas de service_role key** : l'app utilise uniquement l'anon key. Avec RLS activé et une session valide, Supabase autorise les opérations. Aucune clé secrète côté client.
+- **Comptes utilisateurs** : créés manuellement via Dashboard Supabase > Authentication > Users > Invite. Pas d'endpoint d'inscription.
+
+**[ACTION HUMAINE REQUISE]** :
+1. Exécuter `supabase/rls-policies.sql` dans l'éditeur SQL Supabase
+2. Créer un premier utilisateur : Dashboard > Authentication > Users > Invite user
 
 **⚠️ IMPORTANT** : Le schéma SQL a changé (nouvelles colonnes). Si le schéma a déjà été appliqué dans Supabase, exécuter ces ALTER manuellement :
 ```sql

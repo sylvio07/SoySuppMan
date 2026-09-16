@@ -1,5 +1,5 @@
 import localFont from "next/font/local";
-import NavBar from "@/app/components/NavBar";
+import AppShell from "@/app/components/AppShell";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -9,7 +9,7 @@ const geistSans = localFont({
 });
 
 export const metadata = {
-  title: "Soycain — Gestion Fournisseurs",
+  title: "SOURCIO — Gestion Fournisseurs",
   description: "Application de gestion et qualification de fournisseurs Soycain",
 };
 
@@ -17,12 +17,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body className={`${geistSans.variable} font-[family-name:var(--font-geist-sans)] antialiased text-gray-900`}>
-        <NavBar />
-        <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fadeIn">
-            {children}
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
