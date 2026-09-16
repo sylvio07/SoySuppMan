@@ -26,11 +26,31 @@ function StatusBadge({ status }) {
   );
 }
 
+const EMPTY_OFFER_FORM = {
+  product_id: '',
+  status: 'À vérifier',
+  moq: '',
+  available_quantity: '',
+  price: '',
+  currency: 'USD',
+  incoterm: '',
+  origin: '',
+  packaging: '',
+  certifications: '',
+  technical_specs: '',
+  comments: '',
+  payment_terms: '',
+  loading_port: '',
+  discharge_port: '',
+  priority: '',
+};
+
 export default function SupplierDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const [supplier, setSupplier] = useState(null);
   const [offers, setOffers] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [supplierDocs, setSupplierDocs] = useState([]);
   const [offerDocs, setOfferDocs] = useState({});
   const [loading, setLoading] = useState(true);
@@ -38,6 +58,10 @@ export default function SupplierDetailPage() {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [addingOffer, setAddingOffer] = useState(false);
+  const [offerForm, setOfferForm] = useState(EMPTY_OFFER_FORM);
+  const [offerSaving, setOfferSaving] = useState(false);
+  const [offerError, setOfferError] = useState(null);
 
   const loadDocuments = useCallback(async () => {
     const { data: docs } = await supabase
@@ -69,8 +93,14 @@ export default function SupplierDetailPage() {
         .select('*, products(name, category_id, categories:category_id(name))')
         .eq('supplier_id', id);
 
+      const { data: prods } = await supabase
+        .from('products')
+        .select('id, name, categories(name)')
+        .order('name');
+
       if (sup) setSupplier(sup);
       if (off) setOffers(off);
+      if (prods) setAllProducts(prods);
       setLoading(false);
     }
     load();
@@ -118,6 +148,48 @@ export default function SupplierDetailPage() {
     setDeleting(true);
     await supabase.from('suppliers').delete().eq('id', id);
     router.push('/suppliers');
+  };
+
+  const handleAddOffer = async () => {
+    setOfferError(null);
+    if (!offerForm.product_id) {
+      setOfferError('Veuillez sélectionner un produit.');
+      return;
+    }
+    const alreadyLinked = offers.some((o) => o.product_id === offerForm.product_id);
+    if (alreadyLinked) {
+      setOfferError('Ce produit est déjà lié à ce fournisseur.');
+      return;
+    }
+    setOfferSaving(true);
+    const payload = {
+      supplier_id: id,
+      product_id: offerForm.product_id,
+      status: offerForm.status || 'À vérifier',
+      moq: offerForm.moq.trim() || null,
+      available_quantity: offerForm.available_quantity.trim() || null,
+      price: offerForm.price ? parseFloat(offerForm.price) : null,
+      currency: offerForm.currency.trim() || null,
+      incoterm: offerForm.incoterm.trim() || null,
+      origin: offerForm.origin.trim() || null,
+      packaging: offerForm.packaging.trim() || null,
+      certifications: offerForm.certifications.trim() || null,
+      technical_specs: offerForm.technical_specs.trim() || null,
+      comments: offerForm.comments.trim() || null,
+      payment_terms: offerForm.payment_terms.trim() || null,
+      loading_port: offerForm.loading_port.trim() || null,
+      discharge_port: offerForm.discharge_port.trim() || null,
+      priority: offerForm.priority.trim() || null,
+    };
+    const { data, error } = await supabase.from('offers').insert(payload).select('*, products(name, category_id, categories:category_id(name))').single();
+    if (error) {
+      setOfferError(`Erreur : ${error.message}`);
+    } else {
+      setOffers((prev) => [...prev, data]);
+      setOfferForm(EMPTY_OFFER_FORM);
+      setAddingOffer(false);
+    }
+    setOfferSaving(false);
   };
 
   if (loading) {
@@ -214,17 +286,145 @@ export default function SupplierDetailPage() {
 
       {/* Offers */}
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Produits proposés
-          <span className="ml-2 text-sm font-normal text-gray-500">({offers.length})</span>
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Produits proposés
+            <span className="ml-2 text-sm font-normal text-gray-500">({offers.length})</span>
+          </h2>
+          {!addingOffer && (
+            <button
+              onClick={() => { setAddingOffer(true); setOfferError(null); setOfferForm(EMPTY_OFFER_FORM); }}
+              className="inline-flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <span className="text-base leading-none">+</span> Ajouter une offre
+            </button>
+          )}
+        </div>
 
-        {offers.length === 0 ? (
+        {/* Add offer form */}
+        {addingOffer && (
+          <div className="bg-white border border-green-200 rounded-xl shadow-sm p-5 mb-4">
+            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span>📋</span> Nouvelle offre
+            </h3>
+
+            {offerError && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-lg mb-4">
+                <span>⚠️</span> {offerError}
+              </div>
+            )}
+
+            {/* Product selector — required */}
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Produit <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={offerForm.product_id}
+                onChange={(e) => setOfferForm((p) => ({ ...p, product_id: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="">— Sélectionner un produit —</option>
+                {allProducts
+                  .filter((p) => !offers.some((o) => o.product_id === p.id))
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.categories?.name ? ` (${p.categories.name})` : ''}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Offer fields in a responsive grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm mb-4">
+              {[
+                ['status', 'Statut', 'select'],
+                ['moq', 'MOQ', 'text'],
+                ['available_quantity', 'Quantité disponible', 'text'],
+                ['price', 'Prix', 'number'],
+                ['currency', 'Devise', 'text'],
+                ['incoterm', 'Incoterm', 'text'],
+                ['origin', 'Origine', 'text'],
+                ['packaging', 'Conditionnement', 'text'],
+                ['payment_terms', 'Conditions de paiement', 'text'],
+                ['loading_port', 'Port de chargement', 'text'],
+                ['discharge_port', 'Port de déchargement', 'text'],
+                ['priority', 'Priorité', 'text'],
+              ].map(([field, label, type]) => (
+                <div key={field}>
+                  <label className="block text-xs text-gray-500 mb-1 font-medium">{label}</label>
+                  {type === 'select' ? (
+                    <select
+                      value={offerForm[field]}
+                      onChange={(e) => setOfferForm((p) => ({ ...p, [field]: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={type}
+                      value={offerForm[field]}
+                      onChange={(e) => setOfferForm((p) => ({ ...p, [field]: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  )}
+                </div>
+              ))}
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs text-gray-500 mb-1 font-medium">Certifications</label>
+                <input
+                  type="text"
+                  value={offerForm.certifications}
+                  onChange={(e) => setOfferForm((p) => ({ ...p, certifications: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs text-gray-500 mb-1 font-medium">Spécifications techniques</label>
+                <input
+                  type="text"
+                  value={offerForm.technical_specs}
+                  onChange={(e) => setOfferForm((p) => ({ ...p, technical_specs: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs text-gray-500 mb-1 font-medium">Commentaires</label>
+                <textarea
+                  rows={2}
+                  value={offerForm.comments}
+                  onChange={(e) => setOfferForm((p) => ({ ...p, comments: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1 border-t border-gray-100">
+              <button
+                onClick={handleAddOffer}
+                disabled={offerSaving}
+                className="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+              >
+                {offerSaving ? 'Enregistrement...' : 'Enregistrer l\'offre'}
+              </button>
+              <button
+                onClick={() => { setAddingOffer(false); setOfferError(null); }}
+                className="border border-gray-300 text-gray-600 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
+        {offers.length === 0 && !addingOffer ? (
           <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
             <div className="text-4xl mb-3">📦</div>
-            <p className="text-gray-400 text-sm">Aucun produit lié à ce fournisseur.</p>
+            <p className="text-gray-500 text-sm font-medium mb-1">Aucun produit lié à ce fournisseur.</p>
+            <p className="text-gray-400 text-sm">Cliquez sur &ldquo;+ Ajouter une offre&rdquo; pour en créer une.</p>
           </div>
-        ) : (
+        ) : offers.length > 0 ? (
           <div className="space-y-4">
             {offers.map((offer) => (
               <div key={offer.id} className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
@@ -266,7 +466,7 @@ export default function SupplierDetailPage() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </section>
     </div>
   );
