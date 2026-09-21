@@ -6,6 +6,8 @@ import { mapColumns, applyMapping } from '@/lib/column-mapping';
 import { findMatchesInDB } from '@/lib/dedup';
 import { executeImport } from '@/lib/import-logic';
 import { supabase } from '@/lib/supabase';
+import SectionIntro from '@/app/components/SectionIntro';
+import Icon from '@/app/components/Icon';
 
 const STEPS = [
   { key: 'upload', label: 'Fichier', index: 1 },
@@ -189,7 +191,8 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto import-workspace">
+      <SectionIntro section="import" />
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Importer un fichier</h1>
       <p className="text-sm text-gray-500 mb-6">
         Importez un fichier Excel (.xlsx, .xls) ou CSV contenant vos données fournisseurs.
@@ -255,7 +258,7 @@ function UploadStep({ onFile }) {
           : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-white'
       }`}
     >
-      <div className="text-5xl mb-4">{dragging ? '📂' : '📁'}</div>
+      <div className="upload-emblem"><Icon name="upload" size={32} /></div>
       {dragging ? (
         <p className="text-green-700 font-medium text-base mb-4">
           Déposez le fichier ici pour l&apos;importer
@@ -271,13 +274,14 @@ function UploadStep({ onFile }) {
         </>
       )}
       {!dragging && (
-        <label className="inline-flex items-center gap-2 cursor-pointer bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium shadow-sm">
+        <label className="relative inline-flex items-center gap-2 cursor-pointer bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium shadow-sm focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-4">
           <span>Choisir un fichier</span>
           <input
             type="file"
             accept=".xlsx,.xls,.csv"
             onChange={onFile}
-            className="hidden"
+            aria-label="Choisir un fichier Excel ou CSV"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </label>
       )}

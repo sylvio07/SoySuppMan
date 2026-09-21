@@ -102,3 +102,13 @@ ALTER TABLE offers ADD COLUMN IF NOT EXISTS priority text;
 - Navigation : remplacement du branding SOURCIO par SOYCAIN et ajout d’une iconographie SVG cohérente sans dépendance externe.
 - Dashboard : ajout d’un hero visuel agroalimentaire généré et versionné dans `public/soycain-agro-hero.png`, avec statistiques et raccourcis hiérarchisés.
 - Les pages métier existantes conservent leurs interactions et bénéficient de la même couche de couleurs, bordures et états de focus.
+
+## 2026-09-21 — Extension de l’identité et interactions
+
+- Palette partagée définie dans Tailwind (verts olive/forêt et gris végétaux) plutôt que surcharge des classes utilitaires. Surfaces opaques pour garder les formulaires, tableaux et dialogues lisibles.
+- Dashboard restructuré, navigation responsive à partir de 1024 px, en-têtes éditoriaux sur les listes et l’import, connexion illustrée. Réutilisation de la photographie locale existante, sans ajout de service d’images externe.
+- Sculpture décorative de graines et de feuilles réalisée en CSS avec perspective et inclinaison au pointeur : relief léger sans moteur WebGL ni dépendance. Les effets n’interceptent pas les commandes métier.
+- Apparitions déclenchées par IntersectionObserver/Web Animations, progression du défilement et retour en haut. Défilement natif, nettoyage des observateurs et écouteurs ; préférence de réduction des animations respectée. Le contenu reste visible sans animation.
+- Accessibilité : lien d’évitement, navigation active annoncée, état du menu, noms accessibles des recherches/filtres, import accessible au clavier et boutons de tableau visibles au focus ou sur écran tactile.
+- Suppression des faux indicateurs visuels : barres décoratives des compteurs, prétendue mise à jour en temps réel et libellé « offres actives » non justifié par la requête. Le dashboard distingue chargement, échec et base vide.
+- Aucun changement de schéma ou de pipeline d’import. Vérification avec Node 22 déjà présent dans le répertoire NVM, sans changement de version globale.

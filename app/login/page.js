@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
+import Icon from '@/app/components/Icon';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,20 +34,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <main className="login-layout">
+      <section className="login-story">
+        <Image src="/soycain-agro-hero.png" alt="Récolte de soja et de sésame dans un paysage agricole" fill priority sizes="(max-width: 767px) 100vw, 54vw" />
+        <div className="login-story-copy">
+          <span className="text-xs tracking-[.2em] uppercase text-[#ead1a0]">De la terre aux opportunités</span>
+          <h2>Des origines riches.<br />Des liens durables.</h2>
+          <p>L’espace SOYCAIN pour connecter vos matières premières, vos partenaires et vos ambitions.</p>
+        </div>
+      </section>
+      <div className="login-form-side">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <span className="text-3xl font-extrabold text-green-700 tracking-tight">SOURCIO</span>
-          <p className="text-sm text-gray-500 mt-1">Sourcing Intelligence Operations</p>
-        </div>
+        <div className="login-wordmark"><Icon name="leaf" /> SOYCAIN</div>
 
         {/* Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h1 className="text-lg font-semibold text-gray-900 mb-6">Connexion</h1>
+        <div>
+          <p className="eyebrow mb-3">VOTRE ESPACE DE TRAVAIL</p>
+          <h1 className="text-3xl font-medium tracking-tight text-gray-900 mb-3">Heureux de vous retrouver.</h1>
+          <p className="text-sm text-gray-500 mb-8">Connectez-vous pour retrouver votre réseau de fournisseurs.</p>
 
           {error && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">
+            <div role="alert" className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">
               <span className="shrink-0 mt-0.5">⚠️</span>
               <span>{error}</span>
             </div>
@@ -103,9 +113,10 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Les comptes sont créés par l&apos;administrateur via le dashboard Supabase.
+          Besoin d’un accès ? Contactez votre administrateur SOYCAIN.
         </p>
       </div>
-    </div>
+      </div>
+    </main>
   );
 }

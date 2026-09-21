@@ -2,19 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import SectionIntro from '@/app/components/SectionIntro';
+import Icon from '@/app/components/Icon';
 import { supabase } from '@/lib/supabase';
 import { exportToExcel } from '@/lib/export';
 
 // Deterministic color palette for category badges based on name hash
 const CATEGORY_COLORS = [
   'bg-green-100 text-green-800',
-  'bg-blue-100 text-blue-800',
+  'bg-amber-100 text-amber-800',
   'bg-yellow-100 text-yellow-800',
-  'bg-purple-100 text-purple-800',
-  'bg-pink-100 text-pink-800',
+  'bg-stone-100 text-stone-700',
+  'bg-lime-100 text-lime-800',
   'bg-orange-100 text-orange-800',
   'bg-teal-100 text-teal-800',
-  'bg-indigo-100 text-indigo-800',
+  'bg-emerald-100 text-emerald-800',
   'bg-red-100 text-red-800',
   'bg-cyan-100 text-cyan-800',
 ];
@@ -76,6 +78,7 @@ export default function ProductsPage() {
   return (
     <div>
       {/* Header row */}
+      <SectionIntro section="products" />
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
         <div className="flex items-center gap-2 flex-wrap">
@@ -108,11 +111,12 @@ export default function ProductsPage() {
       <div className="mb-4">
         <div className="relative">
           <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none select-none text-base">
-            🔍
+            <Icon name="search" size={17} />
           </span>
           <input
             type="text"
             placeholder="Rechercher un produit..."
+            aria-label="Rechercher un produit"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
@@ -125,6 +129,7 @@ export default function ProductsPage() {
         <div className="flex flex-wrap gap-2 mb-5">
           <button
             onClick={() => setFilterCategory('')}
+            aria-pressed={filterCategory === ''}
             className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
               filterCategory === ''
                 ? 'bg-green-600 text-white border-green-600'
@@ -137,6 +142,7 @@ export default function ProductsPage() {
             <button
               key={c}
               onClick={() => setFilterCategory(filterCategory === c ? '' : c)}
+              aria-pressed={filterCategory === c}
               className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                 filterCategory === c
                   ? 'bg-green-600 text-white border-green-600'
@@ -163,7 +169,7 @@ export default function ProductsPage() {
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto shadow-sm">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <span className="text-5xl mb-4">📦</span>
+            <span className="empty-icon"><Icon name="leaf" size={30} /></span>
             <p className="text-base font-medium text-gray-500 mb-1">Aucun produit trouvé</p>
             {search || filterCategory ? (
               <p className="text-sm text-gray-400">Essayez de modifier vos filtres.</p>

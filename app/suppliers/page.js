@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import SectionIntro from '@/app/components/SectionIntro';
+import Icon from '@/app/components/Icon';
 import { supabase } from '@/lib/supabase';
 import { exportToExcel } from '@/lib/export';
 
@@ -106,6 +108,7 @@ export default function SuppliersPage() {
   return (
     <div>
       {/* Header */}
+      <SectionIntro section="suppliers" />
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Fournisseurs</h1>
         <div className="flex items-center gap-2 flex-wrap">
@@ -140,12 +143,14 @@ export default function SuppliersPage() {
         <input
           type="text"
           placeholder="Rechercher (nom, pays, email...)"
+          aria-label="Rechercher un fournisseur"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
         <button
           onClick={() => setFiltersOpen((v) => !v)}
+          aria-expanded={filtersOpen}
           className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg border transition-colors font-medium ${
             filtersOpen || activeFiltersCount > 0
               ? 'border-green-500 text-green-700 bg-green-50'
@@ -169,6 +174,7 @@ export default function SuppliersPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
           <select
             value={filterCountry}
+            aria-label="Filtrer par pays"
             onChange={(e) => setFilterCountry(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
@@ -179,6 +185,7 @@ export default function SuppliersPage() {
           </select>
           <select
             value={filterStatus}
+            aria-label="Filtrer par statut"
             onChange={(e) => setFilterStatus(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
@@ -189,6 +196,7 @@ export default function SuppliersPage() {
           </select>
           <select
             value={filterCertification}
+            aria-label="Filtrer par certification"
             onChange={(e) => setFilterCertification(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
@@ -199,6 +207,7 @@ export default function SuppliersPage() {
           </select>
           <select
             value={filterIncoterm}
+            aria-label="Filtrer par incoterm"
             onChange={(e) => setFilterIncoterm(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
@@ -225,7 +234,7 @@ export default function SuppliersPage() {
       <div className="md:hidden space-y-2">
         {filtered.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center py-16 gap-3 text-center">
-            <span className="text-5xl">🏭</span>
+            <span className="empty-icon"><Icon name="users" size={30} /></span>
             <p className="text-gray-500 font-medium">Aucun fournisseur trouvé</p>
             <p className="text-gray-400 text-sm">
               {search || activeFiltersCount > 0
@@ -263,7 +272,7 @@ export default function SuppliersPage() {
       <div className="hidden md:block bg-white border border-gray-200 rounded-lg overflow-x-auto shadow-sm">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <span className="text-5xl">🏭</span>
+            <span className="empty-icon"><Icon name="users" size={30} /></span>
             <p className="text-gray-500 font-medium">Aucun fournisseur trouvé</p>
             <p className="text-gray-400 text-sm">
               {search || activeFiltersCount > 0

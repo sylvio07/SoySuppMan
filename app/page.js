@@ -6,38 +6,122 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import Icon from './components/Icon';
 
-const statStyles = {
-  green: { icon: 'users', tint: 'bg-[#e8f2e3] text-[#276143]', line: 'bg-[#77a953]' },
-  amber: { icon: 'box', tint: 'bg-[#fbf0dc] text-[#9a6c24]', line: 'bg-[#d9a354]' },
-  plum: { icon: 'layers', tint: 'bg-[#eee9e3] text-[#725b47]', line: 'bg-[#9a7c60]' },
-  teal: { icon: 'spark', tint: 'bg-[#e2f0ed] text-[#286b61]', line: 'bg-[#4e9d8d]' },
+const indicators = [
+  { label: 'Fournisseurs', key: 'suppliers', icon: 'users', href: '/suppliers', tone: 'olive' },
+  { label: 'Produits', key: 'products', icon: 'leaf', href: '/products', tone: 'wheat' },
+  { label: 'Catégories', key: 'categories', icon: 'layers', href: '/categories', tone: 'clay' },
+  { label: 'Offres', key: 'offers', icon: 'box', tone: 'sage' },
+];
+const statusColors = {
+  'Qualifié': '#5f8446', 'À vérifier': '#c5994e', 'Rejeté': '#b96d58',
+  'En attente': '#8e9b82', Actif: '#5f8446', Inactif: '#8e9b82', Bloqué: '#b96d58',
 };
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
-  useEffect(() => { (async () => {
-    const [s, p, c, o] = await Promise.all([supabase.from('suppliers').select('id,status'), supabase.from('products').select('id'), supabase.from('categories').select('id'), supabase.from('offers').select('id,product_id')]);
-    const suppliers = s.data || [], products = p.data || [], offers = o.data || [];
-    const covered = new Set(offers.map((x) => x.product_id)); const statusCounts = {};
-    suppliers.forEach((x) => { const status = x.status || 'À vérifier'; statusCounts[status] = (statusCounts[status] || 0) + 1; });
-    setStats({ totalSuppliers: suppliers.length, totalProducts: products.length, totalCategories: (c.data || []).length, totalOffers: offers.length, productsWithoutSupplier: products.filter((x) => !covered.has(x.id)).length, statusCounts });
-  })(); }, []);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
-  if (!stats) return <div className="space-y-5"><div className="h-64 rounded-[28px] bg-[#e8eee4] animate-pulse" /><div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1,2,3,4].map((x) => <div key={x} className="h-32 rounded-2xl bg-white/70 animate-pulse" />)}</div></div>;
-  const total = stats.totalSuppliers || 1;
-  const statusColors = { Actif: 'bg-[#79aa51]', 'À vérifier': 'bg-[#e2ae56]', Inactif: 'bg-[#a7b4ad]', Bloqué: 'bg-[#c16f58]', 'En attente': 'bg-[#78a6ac]' };
-  return <div className="space-y-7">
-    <section className="relative overflow-hidden rounded-[28px] min-h-[310px] hero-glow grain bg-[#123d2d] text-white">
-      <Image src="/soycain-agro-hero.png" alt="Champs et récoltes agricoles" fill priority className="object-cover object-center opacity-80" sizes="(max-width: 768px) 100vw, 1480px" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#123d2d] via-[#123d2d]/75 to-transparent" />
-      <div className="relative z-10 flex flex-col justify-between min-h-[310px] p-7 sm:p-10 max-w-2xl"><div><div className="inline-flex items-center gap-2 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-[#f4d397] mb-7"><span className="w-1.5 h-1.5 rounded-full bg-[#b6db73]" /> CENTRE DE PILOTAGE SOURCING</div><h1 className="text-3xl sm:text-5xl font-semibold tracking-[-.04em] leading-[1.02]">Cultiver de meilleures<br /><span className="text-[#e4b86d]">connexions.</span></h1><p className="mt-4 text-sm sm:text-base text-white/75 max-w-md leading-relaxed">Une vision claire de votre réseau fournisseurs, des récoltes aux offres les plus prometteuses.</p></div><div className="flex items-center gap-4 text-xs text-white/70"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#b6db73]" /> Base qualifiée</span><span className="h-4 w-px bg-white/20" /><span>Mis à jour en temps réel</span></div></div>
-    </section>
-    <div className="flex items-end justify-between"><div><p className="text-xs uppercase tracking-[.18em] font-semibold text-[#7b9485]">Votre activité</p><h2 className="text-2xl sm:text-3xl font-semibold tracking-[-.03em] text-[#18352b] mt-1">Vue d’ensemble</h2></div><Link href="/import" className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-[#1d5a40] text-white text-sm font-semibold px-4 py-2.5 hover:bg-[#123d2d] transition-colors"><Icon name="upload" size={16} /> Nouvel import</Link></div>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">{[['Fournisseurs', stats.totalSuppliers, 'green', '/suppliers'], ['Produits', stats.totalProducts, 'amber', '/products'], ['Catégories', stats.totalCategories, 'plum', '/categories'], ['Offres actives', stats.totalOffers, 'teal', null]].map(([label, value, color, href]) => <StatCard key={label} label={label} value={value} color={color} href={href} />)}</div>
-    <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_.9fr] gap-5"><section className="bg-white soft-card rounded-[22px] p-5 sm:p-7"><div className="flex items-start justify-between mb-6"><div><p className="text-xs uppercase tracking-[.15em] font-semibold text-[#8aa092]">Qualité du réseau</p><h2 className="text-lg font-semibold text-[#18352b] mt-1">Statut des fournisseurs</h2></div><div className="w-10 h-10 rounded-xl bg-[#edf4e9] text-[#39734d] flex items-center justify-center"><Icon name="users" size={19} /></div></div>{Object.entries(stats.statusCounts).length === 0 ? <p className="text-sm text-[#8ba097]">Aucun fournisseur à afficher.</p> : <div className="space-y-4">{Object.entries(stats.statusCounts).map(([status, count]) => <div key={status}><div className="flex items-center justify-between text-sm mb-1.5"><span className="text-[#526c5e]">{status}</span><span className="font-semibold text-[#18352b]">{count} <span className="text-xs text-[#9aada1] font-normal">({Math.round(count / total * 100)}%)</span></span></div><div className="h-2 bg-[#edf2eb] rounded-full overflow-hidden"><div className={`h-full rounded-full ${statusColors[status] || 'bg-[#7cae45]'}`} style={{ width: `${count / total * 100}%` }} /></div></div>)}</div>}</section><section className="relative overflow-hidden bg-[#f3eadc] soft-card rounded-[22px] p-5 sm:p-7"><div className="absolute -right-10 -bottom-16 w-52 h-52 rounded-full border-[28px] border-[#e4c48d]/40" /><div className="relative"><div className="flex items-start justify-between mb-6"><div><p className="text-xs uppercase tracking-[.15em] font-semibold text-[#a2875f]">À surveiller</p><h2 className="text-lg font-semibold text-[#5b4933] mt-1">Points d’attention</h2></div><div className="w-10 h-10 rounded-xl bg-[#fff8eb] text-[#b68136] flex items-center justify-center"><Icon name="spark" size={19} /></div></div><div className={`rounded-2xl p-4 border ${stats.productsWithoutSupplier > 0 ? 'bg-[#fff8eb] border-[#ead19f]' : 'bg-[#edf6eb] border-[#cfe3c9]'}`}><div className="flex gap-3"><span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${stats.productsWithoutSupplier > 0 ? 'bg-[#d9a354]' : 'bg-[#78a953]'}`} /><div><p className="text-sm font-semibold text-[#5b4933]">{stats.productsWithoutSupplier > 0 ? `${stats.productsWithoutSupplier} produit(s) sans fournisseur` : 'Votre catalogue est bien couvert'}</p><p className="text-xs text-[#8a7659] mt-1 leading-relaxed">{stats.productsWithoutSupplier > 0 ? 'Ajoutez une source pour compléter votre couverture produit.' : 'Aucun point bloquant détecté dans la base actuelle.'}</p></div></div></div><Link href="/products" className="inline-flex items-center gap-2 text-xs font-semibold text-[#8b6835] mt-5 hover:text-[#5b4933]">Voir le catalogue <Icon name="arrow" size={14} /></Link></div></section></div>
-    <section><div className="flex items-end justify-between mb-4"><div><p className="text-xs uppercase tracking-[.15em] font-semibold text-[#8aa092]">Accès rapide</p><h2 className="text-lg font-semibold text-[#18352b] mt-1">Les prochains gestes</h2></div></div><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><QuickCard href="/import" icon="upload" index="01" title="Importer des données" text="Ajoutez un fichier Excel ou CSV à votre base de sourcing." tone="green" /><QuickCard href="/suppliers" icon="users" index="02" title="Explorer les fournisseurs" text="Retrouvez vos partenaires, contacts et statuts en un coup d’œil." tone="sand" /><QuickCard href="/products" icon="box" index="03" title="Comparer les offres" text="Identifiez les meilleures sources par produit et catégorie." tone="lavender" /></div></section>
-  </div>;
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setError(false);
+      try {
+        const results = await Promise.all([
+          supabase.from('suppliers').select('id, status'),
+          supabase.from('products').select('id'),
+          supabase.from('categories').select('id'),
+          supabase.from('offers').select('id, product_id'),
+        ]);
+        if (results.some((result) => result.error)) throw new Error('Chargement impossible');
+        const [suppliers, products, categories, offers] = results.map((result) => result.data || []);
+        const covered = new Set(offers.map((offer) => offer.product_id));
+        const statuses = {};
+        suppliers.forEach((supplier) => {
+          const status = supplier.status || 'À vérifier';
+          statuses[status] = (statuses[status] || 0) + 1;
+        });
+        if (!cancelled) setStats({
+          suppliers: suppliers.length, products: products.length,
+          categories: categories.length, offers: offers.length, statuses,
+          uncovered: products.filter((product) => !covered.has(product.id)).length,
+        });
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [attempt]);
+
+  return (
+    <div className="space-y-8">
+      <section className="dashboard-hero hero-glow">
+        <Image src="/soycain-agro-hero.png" alt="Champs de soja et graines récoltées à la lumière du soir" fill priority className="object-cover" sizes="(max-width: 768px) 100vw, 1300px" />
+        <div className="dashboard-hero-shade" />
+        <div className="dashboard-hero-copy">
+          <p className="eyebrow"><Icon name="leaf" size={16} /> L’ORIGINE DES BELLES CONNEXIONS</p>
+          <h1>Un sourcing ancré<br />dans <em>le vivant.</em></h1>
+          <p>Des matières premières aux partenaires de confiance.<br className="hidden sm:block" /> Tout votre écosystème, dans un même espace.</p>
+          <div className="hero-actions">
+            <Link href="/suppliers">Explorer le réseau <Icon name="arrow" size={17} /></Link>
+            <a href="#overview" className="hero-secondary">Votre activité <Icon name="arrow" size={15} className="rotate-90" /></a>
+          </div>
+        </div>
+        <div className="hero-origin" aria-hidden="true"><Icon name="leaf" size={25} /><div>La richesse de nos origines<span>SOJA · SÉSAME · FILIÈRES VÉGÉTALES</span></div></div>
+      </section>
+
+      <div id="overview" className="flex items-end justify-between gap-4 scroll-mt-28">
+        <div><p className="eyebrow mb-2">LE POULS DE VOTRE ACTIVITÉ</p><h2 className="text-2xl font-medium tracking-tight text-gray-900">Votre sourcing, en perspective.</h2></div>
+        <Link href="/import" className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-green-700 text-white text-sm font-medium px-4 py-3 hover:bg-green-800 transition-colors"><Icon name="upload" size={16} /> Nouvel import</Link>
+      </div>
+      {error && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex flex-wrap gap-3 items-center justify-between"><span>Les indicateurs sont momentanément indisponibles.</span><button className="font-semibold underline underline-offset-4" onClick={() => setAttempt((value) => value + 1)}>Réessayer</button></div>}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" aria-busy={!stats && !error}>
+        {indicators.map((indicator, index) => <StatCard key={indicator.key} indicator={indicator} value={stats?.[indicator.key]} index={index} />)}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-5">
+        <section className="bg-white soft-card rounded-[22px] p-6 sm:p-7">
+          <div className="panel-heading"><div><p className="eyebrow">VOTRE RÉSEAU</p><h2>La qualification, en un regard.</h2></div><Icon name="shield" size={23} /></div>
+          {!stats ? <p className="text-sm text-gray-500 py-6">{error ? 'Données indisponibles.' : 'Chargement des statuts…'}</p> : stats.suppliers === 0 ? <div className="py-6 text-sm text-gray-500"><p>Votre réseau commence ici.</p><Link href="/import" className="inline-flex items-center gap-2 mt-3 text-green-700 font-medium">Importer vos premiers fournisseurs <Icon name="arrow" size={15} /></Link></div> : <div className="space-y-5">{Object.entries(stats.statuses).map(([status, count]) => (
+            <div key={status}>
+              <div className="flex justify-between text-sm mb-2"><span className="text-gray-600">{status}</span><span className="font-medium text-gray-900">{count} <span className="text-gray-500 font-normal text-xs ml-2">{Math.round(count / stats.suppliers * 100)} %</span></span></div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${count / stats.suppliers * 100}%`, background: statusColors[status] || '#8e9b82' }} /></div>
+            </div>
+          ))}</div>}
+        </section>
+        <section className="attention-panel">
+          <div className="panel-heading"><div><p className="eyebrow">VOS PRIORITÉS</p><h2>Un catalogue bien entouré.</h2></div><Icon name="search" size={22} /></div>
+          <div className="attention-count">{stats ? stats.uncovered : '—'}<span>produit{stats?.uncovered === 1 ? '' : 's'} sans fournisseur</span></div>
+          <p className="text-sm leading-relaxed text-[#716347] mt-4">{!stats ? 'La couverture de votre catalogue apparaîtra après le chargement des données.' : stats.products === 0 ? 'Ajoutez vos premiers produits pour commencer à construire votre catalogue.' : stats.uncovered > 0 ? 'Complétez vos sources pour ouvrir de nouvelles possibilités d’approvisionnement.' : 'Chaque produit est associé à au moins un fournisseur.'}</p>
+          <Link href="/products" className="inline-flex items-center gap-2 text-sm font-medium text-[#695127] mt-6">Consulter le catalogue <Icon name="arrow" size={15} /></Link>
+        </section>
+      </div>
+
+      <section>
+        <p className="eyebrow mb-2">PASSER À L’ACTION</p><h2 className="text-xl font-medium text-gray-900 tracking-tight mb-5">À chaque besoin, le bon chemin.</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <QuickCard href="/import" icon="upload" index="01" title="Enrichir votre base" text="Intégrez vos fichiers Excel et CSV, avec une vérification avant chaque import." />
+          <QuickCard href="/suppliers" icon="users" index="02" title="Rencontrer vos partenaires" text="Retrouvez les coordonnées, les offres et les qualifications de votre réseau." />
+          <QuickCard href="/products" icon="leaf" index="03" title="Explorer les possibilités" text="Parcourez les matières premières et comparez les offres par produit." />
+        </div>
+      </section>
+    </div>
+  );
 }
 
-function StatCard({ label, value, color, href }) { const s = statStyles[color]; const c = <div className="bg-white soft-card rounded-[18px] p-4 sm:p-5 h-full hover:-translate-y-0.5 transition-transform"><div className="flex items-center justify-between mb-5"><span className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.tint}`}><Icon name={s.icon} size={17} /></span>{href && <Icon name="arrow" size={15} className="text-[#a5b5aa]" />}</div><div className="text-3xl font-semibold tracking-[-.04em] text-[#18352b]">{value}</div><div className="text-xs font-medium text-[#7b9485] mt-1">{label}</div><div className="mt-4 h-1 rounded-full bg-[#edf2eb] overflow-hidden"><div className={`h-full w-2/3 rounded-full ${s.line}`} /></div></div>; return href ? <Link href={href}>{c}</Link> : c; }
-function QuickCard({ href, icon, index, title, text, tone }) { const tones = { green: 'bg-[#e7f1e3] text-[#286143]', sand: 'bg-[#f6ead8] text-[#9a6c2b]', lavender: 'bg-[#ece8e1] text-[#755f4c]' }; return <Link href={href} className="group bg-white soft-card rounded-[18px] p-5 hover:-translate-y-1 transition-all"><div className="flex items-center justify-between"><span className={`w-10 h-10 rounded-xl flex items-center justify-center ${tones[tone]}`}><Icon name={icon} size={18} /></span><span className="text-[11px] font-bold tracking-[.15em] text-[#b2c0b7]">{index}</span></div><h3 className="font-semibold text-[#234536] mt-5">{title}</h3><p className="text-sm leading-relaxed text-[#81958a] mt-2">{text}</p><span className="inline-flex items-center gap-2 text-xs font-semibold text-[#4e765c] mt-4">Ouvrir <Icon name="arrow" size={14} className="group-hover:translate-x-1 transition-transform" /></span></Link>; }
+function StatCard({ indicator, value, index }) {
+  const content = <div className={`stat-card soft-card tone-${indicator.tone}`}>
+    <div className="flex items-center justify-between"><span className="stat-icon"><Icon name={indicator.icon} size={21} /></span><span className="text-[10px] tracking-widest text-gray-400">0{index + 1}</span></div>
+    <p className="stat-number">{value ?? '—'}</p>
+    <div className="flex items-center justify-between gap-2"><span className="text-sm text-gray-600">{indicator.label}</span>{indicator.href && <Icon name="arrow" size={15} className="text-gray-400" />}</div>
+  </div>;
+  return indicator.href ? <Link href={indicator.href} aria-label={`Consulter les ${indicator.label.toLowerCase()}`}>{content}</Link> : content;
+}
+
+function QuickCard({ href, icon, index, title, text }) {
+  return <Link href={href} className="quick-card soft-card group">
+    <div className="flex items-center justify-between"><Icon name={icon} size={23} /><span className="text-[11px] text-gray-400 tracking-widest">{index}</span></div>
+    <h3>{title}</h3><p>{text}</p><span className="inline-flex items-center gap-2 text-xs font-medium mt-5">Découvrir <Icon name="arrow" size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+  </Link>;
+}
