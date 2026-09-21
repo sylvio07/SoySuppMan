@@ -14,8 +14,8 @@ export default function AppShell({ children }) {
   return (
     <>
       <NavBar />
-      <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fadeIn">
+      <div className="min-h-screen overflow-x-hidden">
+        <main className="max-w-[1480px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-9 animate-fadeIn">
           {children}
         </main>
       </div>

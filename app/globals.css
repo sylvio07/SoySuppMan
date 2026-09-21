@@ -6,6 +6,13 @@ html {
   scroll-behavior: smooth;
 }
 
+:root { --forest: #123d2d; --forest-2: #1d5a40; --leaf: #7cae45; --amber: #dda75e; --ink: #18352b; --paper: #f7f8f3; }
+body { background: var(--paper); color: var(--ink); background-image: radial-gradient(circle at 10% 0%, rgba(220,237,213,.6), transparent 28rem), radial-gradient(circle at 90% 20%, rgba(247,232,202,.42), transparent 24rem); }
+::selection { background: #d8e9ca; color: var(--forest); }
+.glass-nav { background: rgba(255,255,255,.84); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.soft-card { border: 1px solid rgba(20,61,45,.09); box-shadow: 0 16px 40px rgba(24,53,43,.06); }
+.hero-glow { box-shadow: 0 20px 50px rgba(18,61,45,.17); }
+
 /* Custom scrollbar (WebKit) */
 ::-webkit-scrollbar {
   width: 6px;
@@ -13,22 +20,22 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #d1d5db; /* gray-300 */
+  background: #dbe5d9;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #16a34a; /* green-600 */
+  background: #7cae45;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #15803d; /* green-700 */
+  background: #1d5a40;
 }
 
 /* Focus-visible ring */
 :focus-visible {
-  outline: 2px solid #16a34a; /* green-600 */
+  outline: 2px solid #7cae45;
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -57,3 +64,16 @@ html {
 .animate-fadeIn {
   animation: fadeIn 300ms ease both;
 }
+
+/* Shared visual language for the existing data pages. */
+.bg-white { background-color: rgba(255, 255, 255, .84); }
+.bg-gray-50 { background-color: #f1f5ee; }
+.border-gray-200 { border-color: #dce7da; }
+.border-gray-300 { border-color: #ccdacc; }
+.bg-green-600 { background-color: #1d5a40; }
+.hover\\:bg-green-700:hover { background-color: #123d2d; }
+.text-green-700 { color: #1d5a40; }
+.text-green-600 { color: #39734d; }
+.focus\\:ring-green-500:focus { --tw-ring-color: #7cae45; }
+input, select, textarea { color: #18352b; }
+input::placeholder, textarea::placeholder { color: #9aada1; }

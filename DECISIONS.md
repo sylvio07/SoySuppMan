@@ -95,3 +95,10 @@ ALTER TABLE offers ADD COLUMN IF NOT EXISTS loading_port text;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS discharge_port text;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS priority text;
 ```
+
+## 2026-09-21 — Refonte UI SOYCAIN
+
+- Direction visuelle : palette forêt/feuille/ambre inspirée des cultures et des graines, avec surfaces ivoire et ombres légères pour une esthétique agroalimentaire premium.
+- Navigation : remplacement du branding SOURCIO par SOYCAIN et ajout d’une iconographie SVG cohérente sans dépendance externe.
+- Dashboard : ajout d’un hero visuel agroalimentaire généré et versionné dans `public/soycain-agro-hero.png`, avec statistiques et raccourcis hiérarchisés.
+- Les pages métier existantes conservent leurs interactions et bénéficient de la même couche de couleurs, bordures et états de focus.

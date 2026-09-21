@@ -4,130 +4,29 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Icon from './Icon';
 
 const navLinks = [
-  { href: '/', label: 'Tableau de bord' },
-  { href: '/import', label: 'Importer' },
-  { href: '/suppliers', label: 'Fournisseurs' },
-  { href: '/categories', label: 'Catégories' },
-  { href: '/products', label: 'Produits' },
+  { href: '/', label: 'Vue d’ensemble', icon: 'grid' },
+  { href: '/import', label: 'Importer', icon: 'upload' },
+  { href: '/suppliers', label: 'Fournisseurs', icon: 'users' },
+  { href: '/categories', label: 'Catégories', icon: 'layers' },
+  { href: '/products', label: 'Produits', icon: 'box' },
 ];
 
 export default function NavBar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
-  const isActive = (href) => {
-    if (href === '/') return pathname === '/';
-    return pathname.startsWith(href);
-  };
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
+  const pathname = usePathname(); const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false); const [signingOut, setSigningOut] = useState(false);
+  const isActive = (href) => href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const handleSignOut = async () => { setSigningOut(true); await supabase.auth.signOut(); router.push('/login'); router.refresh(); };
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <Link href="/" className="flex items-baseline gap-1">
-              <span className="text-xl font-extrabold text-green-700 tracking-tight">SOURCIO</span>
-              <span className="text-xs font-medium text-gray-400 hidden sm:inline">Sourcing Intelligence Operations</span>
-            </Link>
-          </div>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`relative px-3 py-2 text-sm transition-colors ${
-                  isActive(href)
-                    ? 'text-green-700 font-medium'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                {label}
-                {isActive(href) && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 rounded-full" />
-                )}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Right side: sign out + hamburger */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              title="Se déconnecter"
-              className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              {signingOut ? '…' : 'Déconnexion'}
-            </button>
-
-            <button
-              type="button"
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500"
-              aria-label="Ouvrir le menu"
-              onClick={() => setMobileOpen((prev) => !prev)}
-            >
-              {mobileOpen ? (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile dropdown */}
-      {mobileOpen && (
-        <nav className="md:hidden border-t border-gray-200 bg-white">
-          <div className="px-4 py-2 space-y-1">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive(href)
-                    ? 'text-green-700 font-medium bg-green-50 border-l-2 border-green-600'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-            <button
-              onClick={() => { setMobileOpen(false); handleSignOut(); }}
-              disabled={signingOut}
-              className="flex items-center w-full gap-2 px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Se déconnecter
-            </button>
-          </div>
-        </nav>
-      )}
+    <header className="sticky top-0 z-50 glass-nav border-b border-[#dce7da]">
+      <div className="max-w-[1480px] mx-auto px-4 sm:px-6 lg:px-8"><div className="flex items-center justify-between h-[72px]">
+        <Link href="/" className="flex items-center gap-3 group"><span className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#123d2d] text-[#f4ca80] shadow-sm group-hover:rotate-3 transition-transform"><Icon name="spark" size={19} /></span><span><span className="block text-[17px] font-black text-[#123d2d] tracking-[.18em]">SOYCAIN</span><span className="block text-[9px] font-semibold text-[#79917f] tracking-[.16em] uppercase">Sourcing intelligence</span></span></Link>
+        <nav className="hidden md:flex items-center gap-1">{navLinks.map(({ href, label, icon }) => <Link key={href} href={href} className={`flex items-center gap-2 px-3 py-2 text-[13px] rounded-lg transition-colors ${isActive(href) ? 'text-[#1d5a40] font-semibold bg-[#edf4e9]' : 'text-[#6d8176] hover:text-[#18352b] hover:bg-[#f3f7f0]'}`}><Icon name={icon} size={15} />{label}</Link>)}</nav>
+        <div className="flex items-center gap-2"><button onClick={handleSignOut} disabled={signingOut} className="hidden md:inline-flex items-center gap-2 text-xs font-medium text-[#6d8176] hover:text-[#b34c37] hover:bg-[#fff2ee] px-3 py-2 rounded-lg transition-colors disabled:opacity-50"><Icon name="logout" size={15} />{signingOut ? '…' : 'Déconnexion'}</button><button type="button" className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-[#6d8176] hover:bg-[#edf4e9]" aria-label="Ouvrir le menu" onClick={() => setMobileOpen((prev) => !prev)}><span className="text-xl leading-none">{mobileOpen ? '×' : '☰'}</span></button></div>
+      </div></div>
+      {mobileOpen && <nav className="md:hidden border-t border-[#dce7da] bg-white/95 px-4 py-3 space-y-1">{navLinks.map(({ href, label, icon }) => <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isActive(href) ? 'text-[#1d5a40] font-semibold bg-[#edf4e9]' : 'text-[#6d8176]'}`}><Icon name={icon} size={16} />{label}</Link>)}<button onClick={() => { setMobileOpen(false); handleSignOut(); }} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-[#b34c37]"><Icon name="logout" size={16} />Déconnexion</button></nav>}
     </header>
   );
 }

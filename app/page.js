@@ -1,243 +1,43 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import Icon from './components/Icon';
+
+const statStyles = {
+  green: { icon: 'users', tint: 'bg-[#e8f2e3] text-[#276143]', line: 'bg-[#77a953]' },
+  amber: { icon: 'box', tint: 'bg-[#fbf0dc] text-[#9a6c24]', line: 'bg-[#d9a354]' },
+  plum: { icon: 'layers', tint: 'bg-[#eee9e3] text-[#725b47]', line: 'bg-[#9a7c60]' },
+  teal: { icon: 'spark', tint: 'bg-[#e2f0ed] text-[#286b61]', line: 'bg-[#4e9d8d]' },
+};
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  useEffect(() => { (async () => {
+    const [s, p, c, o] = await Promise.all([supabase.from('suppliers').select('id,status'), supabase.from('products').select('id'), supabase.from('categories').select('id'), supabase.from('offers').select('id,product_id')]);
+    const suppliers = s.data || [], products = p.data || [], offers = o.data || [];
+    const covered = new Set(offers.map((x) => x.product_id)); const statusCounts = {};
+    suppliers.forEach((x) => { const status = x.status || 'À vérifier'; statusCounts[status] = (statusCounts[status] || 0) + 1; });
+    setStats({ totalSuppliers: suppliers.length, totalProducts: products.length, totalCategories: (c.data || []).length, totalOffers: offers.length, productsWithoutSupplier: products.filter((x) => !covered.has(x.id)).length, statusCounts });
+  })(); }, []);
 
-  useEffect(() => {
-    async function load() {
-      const [suppliers, products, categories, offers] = await Promise.all([
-        supabase.from('suppliers').select('id, status'),
-        supabase.from('products').select('id'),
-        supabase.from('categories').select('id'),
-        supabase.from('offers').select('id, product_id'),
-      ]);
-
-      const supplierData = suppliers.data || [];
-      const productData = products.data || [];
-      const offerData = offers.data || [];
-
-      const productIdsWithOffers = new Set(offerData.map((o) => o.product_id));
-      const productsWithoutSupplier = productData.filter(
-        (p) => !productIdsWithOffers.has(p.id)
-      ).length;
-
-      const statusCounts = {};
-      for (const s of supplierData) {
-        const status = s.status || 'À vérifier';
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      }
-
-      setStats({
-        totalSuppliers: supplierData.length,
-        totalProducts: productData.length,
-        totalCategories: (categories.data || []).length,
-        totalOffers: offerData.length,
-        productsWithoutSupplier,
-        statusCounts,
-      });
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6 text-gray-900">Tableau de bord</h1>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white border border-gray-200 border-l-4 border-l-gray-200 rounded-lg p-5 animate-pulse">
-              <div className="h-9 bg-gray-200 rounded w-16 mb-2"></div>
-              <div className="h-4 bg-gray-100 rounded w-24"></div>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg p-6 animate-pulse">
-              <div className="h-5 bg-gray-200 rounded w-40 mb-4"></div>
-              <div className="space-y-3">
-                {[...Array(3)].map((_, j) => (
-                  <div key={j} className="h-4 bg-gray-100 rounded w-full"></div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="h-5 bg-gray-200 rounded w-32 mb-4 animate-pulse"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg p-5 animate-pulse">
-              <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
-              <div className="h-4 bg-gray-100 rounded w-48"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-4 text-gray-900">Tableau de bord</h1>
-        <p className="text-gray-500">
-          Connectez Supabase pour voir les statistiques.
-        </p>
-      </div>
-    );
-  }
-
-  const totalSuppliers = stats.totalSuppliers || 0;
-  const statusEntries = Object.entries(stats.statusCounts);
-
-  const statusColorMap = {
-    'Actif': 'bg-green-500',
-    'Inactif': 'bg-gray-400',
-    'À vérifier': 'bg-yellow-400',
-    'Bloqué': 'bg-red-500',
-    'En attente': 'bg-blue-400',
-  };
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-1 text-gray-900">Tableau de bord</h1>
-      <p className="text-sm text-gray-500 mb-7">Vue d&apos;ensemble de votre base fournisseurs</p>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-        <StatCard label="Fournisseurs" value={stats.totalSuppliers} href="/suppliers" color="green" />
-        <StatCard label="Produits" value={stats.totalProducts} href="/products" color="blue" />
-        <StatCard label="Catégories" value={stats.totalCategories} color="purple" />
-        <StatCard label="Offres" value={stats.totalOffers} color="teal" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Status breakdown */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="font-semibold text-gray-800 mb-5">Statut des fournisseurs</h2>
-          {statusEntries.length === 0 ? (
-            <p className="text-gray-400 text-sm">Aucun fournisseur.</p>
-          ) : (
-            <div className="space-y-3">
-              {statusEntries.map(([status, count]) => {
-                const pct = totalSuppliers > 0 ? Math.round((count / totalSuppliers) * 100) : 0;
-                const barColor = statusColorMap[status] || 'bg-indigo-400';
-                return (
-                  <div key={status}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-gray-600">{status}</span>
-                      <span className="text-xs font-semibold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">{count}</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className={`${barColor} h-2 rounded-full transition-all duration-500`}
-                        style={{ width: `${pct}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Alerts */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="font-semibold text-gray-800 mb-5">Alertes</h2>
-          {stats.productsWithoutSupplier > 0 ? (
-            <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="mt-0.5 w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0"></div>
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold text-yellow-700">{stats.productsWithoutSupplier}</span>{' '}
-                produit(s) sans fournisseur identifié
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-              <p className="text-sm text-gray-600">Aucune alerte — tout est en ordre.</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <h2 className="font-semibold text-gray-800 mb-4">Raccourcis</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <QuickCard
-          href="/import"
-          title="Importer des données"
-          description="Chargez un fichier Excel ou CSV pour ajouter ou mettre à jour des fournisseurs."
-          color="blue"
-        />
-        <QuickCard
-          href="/suppliers"
-          title="Voir les fournisseurs"
-          description="Parcourez la liste complète des fournisseurs et consultez leurs détails."
-          color="green"
-        />
-        <QuickCard
-          href="/products"
-          title="Explorer les produits"
-          description="Comparez les offres par produit et identifiez les meilleures sources."
-          color="purple"
-        />
-      </div>
-    </div>
-  );
+  if (!stats) return <div className="space-y-5"><div className="h-64 rounded-[28px] bg-[#e8eee4] animate-pulse" /><div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1,2,3,4].map((x) => <div key={x} className="h-32 rounded-2xl bg-white/70 animate-pulse" />)}</div></div>;
+  const total = stats.totalSuppliers || 1;
+  const statusColors = { Actif: 'bg-[#79aa51]', 'À vérifier': 'bg-[#e2ae56]', Inactif: 'bg-[#a7b4ad]', Bloqué: 'bg-[#c16f58]', 'En attente': 'bg-[#78a6ac]' };
+  return <div className="space-y-7">
+    <section className="relative overflow-hidden rounded-[28px] min-h-[310px] hero-glow grain bg-[#123d2d] text-white">
+      <Image src="/soycain-agro-hero.png" alt="Champs et récoltes agricoles" fill priority className="object-cover object-center opacity-80" sizes="(max-width: 768px) 100vw, 1480px" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#123d2d] via-[#123d2d]/75 to-transparent" />
+      <div className="relative z-10 flex flex-col justify-between min-h-[310px] p-7 sm:p-10 max-w-2xl"><div><div className="inline-flex items-center gap-2 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-[#f4d397] mb-7"><span className="w-1.5 h-1.5 rounded-full bg-[#b6db73]" /> CENTRE DE PILOTAGE SOURCING</div><h1 className="text-3xl sm:text-5xl font-semibold tracking-[-.04em] leading-[1.02]">Cultiver de meilleures<br /><span className="text-[#e4b86d]">connexions.</span></h1><p className="mt-4 text-sm sm:text-base text-white/75 max-w-md leading-relaxed">Une vision claire de votre réseau fournisseurs, des récoltes aux offres les plus prometteuses.</p></div><div className="flex items-center gap-4 text-xs text-white/70"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#b6db73]" /> Base qualifiée</span><span className="h-4 w-px bg-white/20" /><span>Mis à jour en temps réel</span></div></div>
+    </section>
+    <div className="flex items-end justify-between"><div><p className="text-xs uppercase tracking-[.18em] font-semibold text-[#7b9485]">Votre activité</p><h2 className="text-2xl sm:text-3xl font-semibold tracking-[-.03em] text-[#18352b] mt-1">Vue d’ensemble</h2></div><Link href="/import" className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-[#1d5a40] text-white text-sm font-semibold px-4 py-2.5 hover:bg-[#123d2d] transition-colors"><Icon name="upload" size={16} /> Nouvel import</Link></div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">{[['Fournisseurs', stats.totalSuppliers, 'green', '/suppliers'], ['Produits', stats.totalProducts, 'amber', '/products'], ['Catégories', stats.totalCategories, 'plum', '/categories'], ['Offres actives', stats.totalOffers, 'teal', null]].map(([label, value, color, href]) => <StatCard key={label} label={label} value={value} color={color} href={href} />)}</div>
+    <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_.9fr] gap-5"><section className="bg-white soft-card rounded-[22px] p-5 sm:p-7"><div className="flex items-start justify-between mb-6"><div><p className="text-xs uppercase tracking-[.15em] font-semibold text-[#8aa092]">Qualité du réseau</p><h2 className="text-lg font-semibold text-[#18352b] mt-1">Statut des fournisseurs</h2></div><div className="w-10 h-10 rounded-xl bg-[#edf4e9] text-[#39734d] flex items-center justify-center"><Icon name="users" size={19} /></div></div>{Object.entries(stats.statusCounts).length === 0 ? <p className="text-sm text-[#8ba097]">Aucun fournisseur à afficher.</p> : <div className="space-y-4">{Object.entries(stats.statusCounts).map(([status, count]) => <div key={status}><div className="flex items-center justify-between text-sm mb-1.5"><span className="text-[#526c5e]">{status}</span><span className="font-semibold text-[#18352b]">{count} <span className="text-xs text-[#9aada1] font-normal">({Math.round(count / total * 100)}%)</span></span></div><div className="h-2 bg-[#edf2eb] rounded-full overflow-hidden"><div className={`h-full rounded-full ${statusColors[status] || 'bg-[#7cae45]'}`} style={{ width: `${count / total * 100}%` }} /></div></div>)}</div>}</section><section className="relative overflow-hidden bg-[#f3eadc] soft-card rounded-[22px] p-5 sm:p-7"><div className="absolute -right-10 -bottom-16 w-52 h-52 rounded-full border-[28px] border-[#e4c48d]/40" /><div className="relative"><div className="flex items-start justify-between mb-6"><div><p className="text-xs uppercase tracking-[.15em] font-semibold text-[#a2875f]">À surveiller</p><h2 className="text-lg font-semibold text-[#5b4933] mt-1">Points d’attention</h2></div><div className="w-10 h-10 rounded-xl bg-[#fff8eb] text-[#b68136] flex items-center justify-center"><Icon name="spark" size={19} /></div></div><div className={`rounded-2xl p-4 border ${stats.productsWithoutSupplier > 0 ? 'bg-[#fff8eb] border-[#ead19f]' : 'bg-[#edf6eb] border-[#cfe3c9]'}`}><div className="flex gap-3"><span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${stats.productsWithoutSupplier > 0 ? 'bg-[#d9a354]' : 'bg-[#78a953]'}`} /><div><p className="text-sm font-semibold text-[#5b4933]">{stats.productsWithoutSupplier > 0 ? `${stats.productsWithoutSupplier} produit(s) sans fournisseur` : 'Votre catalogue est bien couvert'}</p><p className="text-xs text-[#8a7659] mt-1 leading-relaxed">{stats.productsWithoutSupplier > 0 ? 'Ajoutez une source pour compléter votre couverture produit.' : 'Aucun point bloquant détecté dans la base actuelle.'}</p></div></div></div><Link href="/products" className="inline-flex items-center gap-2 text-xs font-semibold text-[#8b6835] mt-5 hover:text-[#5b4933]">Voir le catalogue <Icon name="arrow" size={14} /></Link></div></section></div>
+    <section><div className="flex items-end justify-between mb-4"><div><p className="text-xs uppercase tracking-[.15em] font-semibold text-[#8aa092]">Accès rapide</p><h2 className="text-lg font-semibold text-[#18352b] mt-1">Les prochains gestes</h2></div></div><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><QuickCard href="/import" icon="upload" index="01" title="Importer des données" text="Ajoutez un fichier Excel ou CSV à votre base de sourcing." tone="green" /><QuickCard href="/suppliers" icon="users" index="02" title="Explorer les fournisseurs" text="Retrouvez vos partenaires, contacts et statuts en un coup d’œil." tone="sand" /><QuickCard href="/products" icon="box" index="03" title="Comparer les offres" text="Identifiez les meilleures sources par produit et catégorie." tone="lavender" /></div></section>
+  </div>;
 }
 
-function StatCard({ label, value, href, color }) {
-  const borderColorMap = {
-    green: 'border-l-green-500',
-    blue: 'border-l-blue-500',
-    purple: 'border-l-purple-500',
-    teal: 'border-l-teal-500',
-  };
-
-  const content = (
-    <div className={`bg-white border border-gray-200 border-l-4 ${borderColorMap[color] || ''} rounded-lg p-4 sm:p-5 h-full`}>
-      <div className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">{value}</div>
-      <div className="flex items-center justify-between mt-1">
-        <span className="text-xs sm:text-sm text-gray-500">{label}</span>
-        {href && <span className="text-gray-400 text-sm">→</span>}
-      </div>
-    </div>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className="block hover:shadow-md transition-shadow duration-200 rounded-lg">
-        {content}
-      </Link>
-    );
-  }
-  return <div className="rounded-lg">{content}</div>;
-}
-
-function QuickCard({ href, title, description, color }) {
-  const accentMap = {
-    blue: 'border-l-blue-500 hover:border-l-blue-600',
-    green: 'border-l-green-500 hover:border-l-green-600',
-    purple: 'border-l-purple-500 hover:border-l-purple-600',
-  };
-
-  return (
-    <Link
-      href={href}
-      className={`block bg-white border border-gray-200 border-l-4 ${accentMap[color] || 'border-l-gray-400'} rounded-lg p-5 hover:shadow-md transition-shadow duration-200 group`}
-    >
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-medium text-gray-800 group-hover:text-gray-900">{title}</span>
-        <span className="text-gray-400 group-hover:text-gray-600 transition-colors duration-150">→</span>
-      </div>
-      <p className="text-sm text-gray-500">{description}</p>
-    </Link>
-  );
-}
+function StatCard({ label, value, color, href }) { const s = statStyles[color]; const c = <div className="bg-white soft-card rounded-[18px] p-4 sm:p-5 h-full hover:-translate-y-0.5 transition-transform"><div className="flex items-center justify-between mb-5"><span className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.tint}`}><Icon name={s.icon} size={17} /></span>{href && <Icon name="arrow" size={15} className="text-[#a5b5aa]" />}</div><div className="text-3xl font-semibold tracking-[-.04em] text-[#18352b]">{value}</div><div className="text-xs font-medium text-[#7b9485] mt-1">{label}</div><div className="mt-4 h-1 rounded-full bg-[#edf2eb] overflow-hidden"><div className={`h-full w-2/3 rounded-full ${s.line}`} /></div></div>; return href ? <Link href={href}>{c}</Link> : c; }
+function QuickCard({ href, icon, index, title, text, tone }) { const tones = { green: 'bg-[#e7f1e3] text-[#286143]', sand: 'bg-[#f6ead8] text-[#9a6c2b]', lavender: 'bg-[#ece8e1] text-[#755f4c]' }; return <Link href={href} className="group bg-white soft-card rounded-[18px] p-5 hover:-translate-y-1 transition-all"><div className="flex items-center justify-between"><span className={`w-10 h-10 rounded-xl flex items-center justify-center ${tones[tone]}`}><Icon name={icon} size={18} /></span><span className="text-[11px] font-bold tracking-[.15em] text-[#b2c0b7]">{index}</span></div><h3 className="font-semibold text-[#234536] mt-5">{title}</h3><p className="text-sm leading-relaxed text-[#81958a] mt-2">{text}</p><span className="inline-flex items-center gap-2 text-xs font-semibold text-[#4e765c] mt-4">Ouvrir <Icon name="arrow" size={14} className="group-hover:translate-x-1 transition-transform" /></span></Link>; }
