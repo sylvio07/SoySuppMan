@@ -100,6 +100,26 @@ const TIP_STYLE = {
   fontSize: 13,
 };
 
+function CountryPath({ geo, count, onEnter, onLeave }) {
+  const [hovered, setHovered] = useState(false);
+  const fill = hovered
+    ? (count > 0 ? '#375e3a' : '#dfe4d8')
+    : mapFill(count);
+
+  return (
+    <Geography
+      key={geo.rsmKey}
+      geography={geo}
+      fill={fill}
+      stroke="#fff"
+      strokeWidth={hovered ? 0.8 : 0.5}
+      onMouseEnter={() => { setHovered(true); onEnter(geo.properties.name, count); }}
+      onMouseLeave={() => { setHovered(false); onLeave(); }}
+      style={{ outline: 'none', cursor: count > 0 ? 'pointer' : 'default' }}
+    />
+  );
+}
+
 export function WorldMap({ countryCounts }) {
   const [tip, setTip] = useState({ show: false, name: '', count: 0, x: 0, y: 0 });
 
@@ -113,7 +133,10 @@ export function WorldMap({ countryCounts }) {
     return m;
   }, [countryCounts]);
 
-  const getCount = (geo) => lookup[norm(geo.properties.name)] || 0;
+  const getCount = (geo) => {
+    const n = norm(geo.properties.name);
+    return lookup[FR_EN[n] || n] || 0;
+  };
   const totalCountries = Object.keys(countryCounts).length;
 
   return (
@@ -140,24 +163,17 @@ export function WorldMap({ countryCounts }) {
           <Sphere stroke="#dce4d5" strokeWidth={0.5} fill="transparent" />
           <Geographies geography={GEO_URL}>
             {({ geographies }) =>
-              geographies.map((geo) => {
-                const count = getCount(geo);
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    onMouseEnter={() =>
-                      setTip((prev) => ({ ...prev, show: true, name: geo.properties.name, count }))
-                    }
-                    onMouseLeave={() => setTip((prev) => ({ ...prev, show: false }))}
-                    style={{
-                      default: { fill: mapFill(count), stroke: '#fff', strokeWidth: 0.5, outline: 'none' },
-                      hover: { fill: count > 0 ? '#375e3a' : '#dfe4d8', stroke: '#fff', strokeWidth: 0.8, outline: 'none' },
-                      pressed: { outline: 'none' },
-                    }}
-                  />
-                );
-              })
+              geographies.map((geo) => (
+                <CountryPath
+                  key={geo.rsmKey}
+                  geo={geo}
+                  count={getCount(geo)}
+                  onEnter={(name, count) =>
+                    setTip((prev) => ({ ...prev, show: true, name, count }))
+                  }
+                  onLeave={() => setTip((prev) => ({ ...prev, show: false }))}
+                />
+              ))
             }
           </Geographies>
         </ComposableMap>
